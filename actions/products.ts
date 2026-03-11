@@ -248,6 +248,7 @@ export async function updateStockAction(
 
 /**
  * Remove um produto (cascade remove stock).
+ * Não redireciona para permitir Optimistic UI + router.refresh() no cliente.
  */
 export async function deleteProductAction(id: number): Promise<void> {
   const supabase = await createClient();
@@ -258,5 +259,4 @@ export async function deleteProductAction(id: number): Promise<void> {
   }
 
   revalidatePath("/dashboard/produtos");
-  redirect("/dashboard/produtos");
 }

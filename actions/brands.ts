@@ -67,6 +67,7 @@ export async function updateBrandAction(
 
 /**
  * Remove uma marca.
+ * Não redireciona para permitir Optimistic UI + router.refresh() no cliente.
  */
 export async function deleteBrandAction(id: number): Promise<void> {
   const supabase = await createClient();
@@ -77,5 +78,4 @@ export async function deleteBrandAction(id: number): Promise<void> {
   }
 
   revalidatePath("/dashboard/marcas");
-  redirect("/dashboard/marcas");
 }

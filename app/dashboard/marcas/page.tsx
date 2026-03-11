@@ -9,22 +9,18 @@ export default async function MarcasPage({
 }) {
   const { novo, editar } = await searchParams;
   const supabase = await createClient();
+  const editId = editar && /^\d+$/.test(editar) ? Number(editar) : null;
 
-  const { data, error } = await supabase
-    .from("brands")
-    .select("*")
-    .order("name", { ascending: true });
-  const brands = (data ?? []) as Tables<"brands">[];
+  const [listResult, editResult] = await Promise.all([
+    supabase.from("brands").select("id, name, description").order("name", { ascending: true }),
+    editId
+      ? supabase.from("brands").select("id, name, description").eq("id", editId).single()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
 
-  let brandToEdit: Tables<"brands"> | null = null;
-  if (editar && /^\d+$/.test(editar)) {
-    const { data: one } = await supabase
-      .from("brands")
-      .select("*")
-      .eq("id", Number(editar))
-      .single();
-    brandToEdit = one as Tables<"brands"> | null;
-  }
+  const brands = (listResult.data ?? []) as Tables<"brands">[];
+  const brandToEdit = (editResult.data ?? null) as Tables<"brands"> | null;
+  const error = listResult.error ?? editResult.error ?? null;
 
   if (error) {
     return (

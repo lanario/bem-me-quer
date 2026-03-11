@@ -73,8 +73,8 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-56 min-h-screen bg-white border-r border-bmq-border flex flex-col">
-      <div className="p-4 border-b border-bmq-border">
+    <aside className="w-56 h-screen sticky top-0 bg-white border-r border-bmq-border flex flex-col shrink-0">
+      <div className="p-4 border-b border-bmq-border shrink-0">
         <Link href="/dashboard" className="flex items-center gap-2">
           <Image
             src="/logo_bmq_transp.png"
@@ -86,7 +86,7 @@ export function Sidebar() {
           <span className="text-xl font-bold text-bmq-dark">Bem Me Quer</span>
         </Link>
       </div>
-      <nav className="flex-1 p-3 overflow-y-auto">
+      <nav className="flex-1 min-h-0 p-3 overflow-y-auto">
         {menuSections.map((section) => (
           <div key={section.title} className="mb-5 last:mb-0">
             <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
@@ -115,7 +115,7 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-      <div className="p-3 border-t border-bmq-border">
+      <div className="p-3 border-t border-bmq-border shrink-0">
         <form action={signOut}>
           <button
             type="submit"

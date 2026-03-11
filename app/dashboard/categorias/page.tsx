@@ -9,22 +9,25 @@ export default async function CategoriasPage({
 }) {
   const { novo, editar } = await searchParams;
   const supabase = await createClient();
+  const editId = editar && /^\d+$/.test(editar) ? Number(editar) : null;
 
-  const { data, error } = await supabase
-    .from("categories")
-    .select("*")
-    .order("name", { ascending: true });
-  const categories = (data ?? []) as Tables<"categories">[];
-
-  let categoryToEdit: Tables<"categories"> | null = null;
-  if (editar && /^\d+$/.test(editar)) {
-    const { data: one } = await supabase
+  const [listResult, editResult] = await Promise.all([
+    supabase
       .from("categories")
-      .select("*")
-      .eq("id", Number(editar))
-      .single();
-    categoryToEdit = one as Tables<"categories"> | null;
-  }
+      .select("id, name, description, price_default")
+      .order("name", { ascending: true }),
+    editId
+      ? supabase
+          .from("categories")
+          .select("id, name, description, price_default")
+          .eq("id", editId)
+          .single()
+      : Promise.resolve({ data: null, error: null }),
+  ]);
+
+  const categories = (listResult.data ?? []) as Tables<"categories">[];
+  const categoryToEdit = (editResult.data ?? null) as Tables<"categories"> | null;
+  const error = listResult.error ?? editResult.error ?? null;
 
   if (error) {
     return (

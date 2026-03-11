@@ -12,9 +12,18 @@ export default async function LocalizacoesPage({
   const { novo, editar } = await searchParams;
   const supabase = await createClient();
 
-  const [{ data, error }, { data: stockData }] = await Promise.all([
-    supabase.from("locations").select("*").order("name", { ascending: true }),
+  const editId = editar && /^\d+$/.test(editar) ? Number(editar) : null;
+
+  const [
+    { data, error },
+    { data: stockData },
+    editResult,
+  ] = await Promise.all([
+    supabase.from("locations").select("id, name, description").order("name", { ascending: true }),
     supabase.from("stock").select("location_id, quantity, products(title)").not("location_id", "is", null),
+    editId
+      ? supabase.from("locations").select("id, name, description").eq("id", editId).single()
+      : Promise.resolve({ data: null, error: null }),
   ]);
 
   const locations = (data ?? []) as Tables<"locations">[];
@@ -34,20 +43,14 @@ export default async function LocalizacoesPage({
     });
   }
 
-  let locationToEdit: Tables<"locations"> | null = null;
-  if (editar && /^\d+$/.test(editar)) {
-    const { data: one } = await supabase
-      .from("locations")
-      .select("*")
-      .eq("id", Number(editar))
-      .single();
-    locationToEdit = one as Tables<"locations"> | null;
-  }
+  const locationToEdit = (editResult.data ?? null) as Tables<"locations"> | null;
+  const editError = "error" in editResult && editResult.error ? editResult.error : null;
+  const resolvedError = error ?? editError;
 
-  if (error) {
+  if (resolvedError) {
     return (
       <div className="p-8">
-        <p className="text-red-600">Erro ao carregar localizações: {error.message}</p>
+        <p className="text-red-600">Erro ao carregar localizações: {resolvedError.message}</p>
       </div>
     );
   }

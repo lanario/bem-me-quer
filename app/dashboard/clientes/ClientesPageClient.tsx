@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTransition, useOptimistic } from "react";
 import { FiPlus, FiEdit2, FiUser, FiMail, FiPhone, FiMapPin } from "react-icons/fi";
+import { deleteClientAction } from "@/actions/clients";
 import { ClientesListSearch } from "./ClientesListSearch";
-import { DeleteClientButton } from "./DeleteClientButton";
+import { DeleteButton } from "@/components/ui/DeleteButton";
 import { PaginationBar } from "@/components/ui/PaginationBar";
 import { SlideOver } from "@/components/ui/SlideOver";
 import { ClientForm } from "./ClientForm";
@@ -17,13 +19,15 @@ type ClientRow = Tables<"clients">;
 function ClientCard({
   client,
   buildUrl,
+  onDelete,
 }: {
   client: ClientRow;
   buildUrl: (extra: { novo?: string; editar?: string }) => string;
+  onDelete: (id: number) => void;
 }) {
   return (
     <div
-      className="rounded-card border border-bmq-border bg-white shadow-card p-5 transition-all duration-300 ease-out hover:scale-[1.015] hover:shadow-cardHover flex flex-col"
+      className="rounded-card border border-bmq-border bg-white shadow-card p-5 transition-all duration-200 ease-out hover:scale-[1.015] hover:shadow-cardHover flex flex-col"
       style={{ backgroundColor: "var(--bmq-cardBg, #FFFFFF)" }}
     >
       <div className="flex items-start gap-3 mb-3">
@@ -56,7 +60,11 @@ function ClientCard({
           <FiEdit2 size={14} />
           Editar
         </Link>
-        <DeleteClientButton id={client.id} />
+        <DeleteButton
+          action={() => onDelete(client.id)}
+          label="Excluir"
+          confirmMessage="Tem certeza que deseja excluir este cliente?"
+        />
       </div>
     </div>
   );
@@ -88,7 +96,22 @@ export function ClientesPageClient({
 }: ClientesPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [, startTransition] = useTransition();
+  const [optimisticClients, setOptimisticClients] = useOptimistic(
+    clients,
+    (state, id: number) => state.filter((c) => c.id !== id)
+  );
   const isOpen = openNew || Boolean(editId);
+
+  function handleDeleteClient(id: number) {
+    startTransition(async () => {
+      // Atualização otimista antes do await elimina a latência percebida no clique.
+      setOptimisticClients(id);
+      await deleteClientAction(id);
+      router.refresh();
+      // Se a action falhar, useOptimistic reverte e banco/tela não ficam dessincronizados.
+    });
+  }
 
   function buildUrl(extra: { novo?: string; editar?: string }) {
     const p = new URLSearchParams(searchParams.toString());
@@ -123,14 +146,19 @@ export function ClientesPageClient({
         <ClientesListSearch defaultValue={busca} orderDefault={ordem} />
 
         <div className="mt-6">
-          {clients.length === 0 ? (
+          {optimisticClients.length === 0 ? (
             <div className="rounded-card border border-bmq-border bg-white shadow-card py-12 text-center text-bmq-mid-dark">
               Nenhum cliente encontrado.
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {clients.map((c) => (
-                <ClientCard key={c.id} client={c} buildUrl={buildUrl} />
+              {optimisticClients.map((c) => (
+                <ClientCard
+                  key={c.id}
+                  client={c}
+                  buildUrl={buildUrl}
+                  onDelete={handleDeleteClient}
+                />
               ))}
             </div>
           )}

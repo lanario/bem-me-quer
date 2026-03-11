@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTransition, useOptimistic } from "react";
 import { FiPlus, FiEdit2 } from "react-icons/fi";
-import { DeleteCategoryButton } from "./DeleteCategoryButton";
+import { deleteCategoryAction } from "@/actions/categories";
+import { DeleteButton } from "@/components/ui/DeleteButton";
 import { SlideOver } from "@/components/ui/SlideOver";
 import { CategoryForm } from "./CategoryForm";
 import type { Tables } from "@/types/database";
@@ -22,10 +24,25 @@ export function CategoriasPageClient({
   editId,
 }: CategoriasPageClientProps) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [optimisticCategories, setOptimisticCategories] = useOptimistic(
+    categories,
+    (state, id: number) => state.filter((c) => c.id !== id)
+  );
   const isOpen = openNew || Boolean(editId);
 
   function closeSlideOver() {
     router.push("/dashboard/categorias");
+  }
+
+  function handleDeleteCategory(id: number) {
+    startTransition(async () => {
+      // Sem bloqueios: atualização otimista antes do await elimina a latência percebida no clique.
+      setOptimisticCategories(id);
+      await deleteCategoryAction(id);
+      router.refresh();
+      // Fallback seguro: se deleteCategoryAction falhar, useOptimistic reverte e o item volta à lista.
+    });
   }
 
   return (
@@ -61,15 +78,15 @@ export function CategoriasPageClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-bmq-border">
-              {categories.length === 0 ? (
+              {optimisticCategories.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-4 py-8 text-center text-bmq-mid-dark">
                     Nenhuma categoria cadastrada.
                   </td>
                 </tr>
               ) : (
-                categories.map((c) => (
-                  <tr key={c.id} className="hover:bg-bmq-mid/10">
+                optimisticCategories.map((c) => (
+                  <tr key={c.id} className="transition-all duration-200 hover:bg-bmq-mid/10">
                     <td className="px-4 py-3 text-sm font-medium text-bmq-dark">
                       {c.name}
                     </td>
@@ -90,7 +107,11 @@ export function CategoriasPageClient({
                           <FiEdit2 size={16} />
                           Editar
                         </Link>
-                        <DeleteCategoryButton id={c.id} />
+                        <DeleteButton
+                          action={() => handleDeleteCategory(c.id)}
+                          label="Excluir"
+                          confirmMessage="Tem certeza que deseja excluir esta categoria?"
+                        />
                       </div>
                     </td>
                   </tr>

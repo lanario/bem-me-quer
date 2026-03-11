@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTransition, useOptimistic } from "react";
 import { FiPlus, FiEdit2 } from "react-icons/fi";
-import { DeleteBrandButton } from "./DeleteBrandButton";
+import { deleteBrandAction } from "@/actions/brands";
+import { DeleteButton } from "@/components/ui/DeleteButton";
 import { SlideOver } from "@/components/ui/SlideOver";
 import { BrandForm } from "./BrandForm";
 import type { Tables } from "@/types/database";
@@ -22,10 +24,25 @@ export function MarcasPageClient({
   editId,
 }: MarcasPageClientProps) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [optimisticBrands, setOptimisticBrands] = useOptimistic(
+    brands,
+    (state, id: number) => state.filter((b) => b.id !== id)
+  );
   const isOpen = openNew || Boolean(editId);
 
   function closeSlideOver() {
     router.push("/dashboard/marcas");
+  }
+
+  function handleDeleteBrand(id: number) {
+    startTransition(async () => {
+      // Atualização otimista antes do await elimina a latência percebida no clique.
+      setOptimisticBrands(id);
+      await deleteBrandAction(id);
+      router.refresh();
+      // Se a action falhar, useOptimistic reverte e banco/tela não ficam dessincronizados.
+    });
   }
 
   return (
@@ -58,15 +75,15 @@ export function MarcasPageClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-bmq-border">
-              {brands.length === 0 ? (
+              {optimisticBrands.length === 0 ? (
                 <tr>
                   <td colSpan={3} className="px-4 py-8 text-center text-bmq-mid-dark">
                     Nenhuma marca cadastrada.
                   </td>
                 </tr>
               ) : (
-                brands.map((b) => (
-                  <tr key={b.id} className="hover:bg-bmq-mid/10">
+                optimisticBrands.map((b) => (
+                  <tr key={b.id} className="transition-all duration-200 hover:bg-bmq-mid/10">
                     <td className="px-4 py-3 text-sm font-medium text-bmq-dark">
                       {b.name}
                     </td>
@@ -82,7 +99,11 @@ export function MarcasPageClient({
                           <FiEdit2 size={16} />
                           Editar
                         </Link>
-                        <DeleteBrandButton id={b.id} />
+                        <DeleteButton
+                          action={() => handleDeleteBrand(b.id)}
+                          label="Excluir"
+                          confirmMessage="Tem certeza que deseja excluir esta marca?"
+                        />
                       </div>
                     </td>
                   </tr>

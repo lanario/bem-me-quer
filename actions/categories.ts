@@ -75,6 +75,7 @@ export async function updateCategoryAction(
 
 /**
  * Remove uma categoria.
+ * Não redireciona para permitir Optimistic UI + router.refresh() no cliente.
  */
 export async function deleteCategoryAction(id: number): Promise<void> {
   const supabase = await createClient();
@@ -85,5 +86,4 @@ export async function deleteCategoryAction(id: number): Promise<void> {
   }
 
   revalidatePath("/dashboard/categorias");
-  redirect("/dashboard/categorias");
 }

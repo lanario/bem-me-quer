@@ -58,6 +58,10 @@ export async function updateLocationAction(
   redirect("/dashboard/localizacoes");
 }
 
+/**
+ * Remove uma localização.
+ * Não redireciona para permitir Optimistic UI + router.refresh() no cliente.
+ */
 export async function deleteLocationAction(id: number): Promise<void> {
   const supabase = await createClient();
   const { error } = await supabase.from("locations").delete().eq("id", id);
@@ -68,5 +72,4 @@ export async function deleteLocationAction(id: number): Promise<void> {
 
   revalidatePath("/dashboard/localizacoes");
   revalidatePath("/dashboard/transferencias");
-  redirect("/dashboard/localizacoes");
 }

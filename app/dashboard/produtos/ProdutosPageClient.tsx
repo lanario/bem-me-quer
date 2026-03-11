@@ -3,9 +3,11 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTransition, useOptimistic } from "react";
 import { FiPlus, FiEdit2, FiPackage, FiDollarSign, FiClipboard, FiFolder, FiChevronDown, FiChevronRight } from "react-icons/fi";
+import { deleteProductAction } from "@/actions/products";
 import { ProdutosFilters } from "./ProdutosFilters";
-import { DeleteProductButton } from "./DeleteProductButton";
+import { DeleteButton } from "@/components/ui/DeleteButton";
 import { PaginationBar } from "@/components/ui/PaginationBar";
 import { SlideOver } from "@/components/ui/SlideOver";
 import { ProductForm } from "./ProductForm";
@@ -17,10 +19,12 @@ function ProductCard({
   product: p,
   buildUrl,
   SIZE_LABELS,
+  onDelete,
 }: {
   product: ProductRow;
   buildUrl: (extra: { novo?: string; editar?: string }) => string;
   SIZE_LABELS: Record<ProductSize, string>;
+  onDelete: (id: number) => void;
 }) {
   const sellPrice = p.sell_price != null ? Number(p.sell_price) : null;
   const costPrice = p.stock_cost_price != null ? Number(p.stock_cost_price) : null;
@@ -44,7 +48,7 @@ function ProductCard({
 
   return (
     <div
-      className="rounded-card border border-bmq-border bg-white shadow-card p-5 transition-all duration-300 ease-out hover:scale-[1.015] hover:shadow-cardHover flex flex-col"
+      className="rounded-card border border-bmq-border bg-white shadow-card p-5 transition-all duration-200 ease-out hover:scale-[1.015] hover:shadow-cardHover flex flex-col"
       style={{ backgroundColor: "var(--bmq-cardBg, #FFFFFF)" }}
     >
       <div className="flex items-start gap-3 mb-3">
@@ -104,7 +108,11 @@ function ProductCard({
           <FiEdit2 size={14} />
           Editar
         </Link>
-        <DeleteProductButton id={p.id} />
+        <DeleteButton
+          action={() => onDelete(p.id)}
+          label="Excluir"
+          confirmMessage="Tem certeza que deseja excluir este produto? O estoque será removido."
+        />
       </div>
     </div>
   );
@@ -171,11 +179,26 @@ export function ProdutosPageClient({
 }: ProdutosPageClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [, startTransition] = useTransition();
+  const [optimisticProducts, setOptimisticProducts] = useOptimistic(
+    products,
+    (state, id: number) => state.filter((p) => p.id !== id)
+  );
   const isOpen = openNew || Boolean(editId);
+
+  function handleDeleteProduct(id: number) {
+    startTransition(async () => {
+      // Atualização otimista antes do await elimina a latência percebida no clique.
+      setOptimisticProducts(id);
+      await deleteProductAction(id);
+      router.refresh();
+      // Se a action falhar, useOptimistic reverte e banco/tela não ficam dessincronizados.
+    });
+  }
 
   const groups = useMemo(() => {
     const map = new Map<string, ProductGroup>();
-    for (const p of products) {
+    for (const p of optimisticProducts) {
       const key = p.category_id != null ? String(p.category_id) : "sem_categoria";
       const label = p.categories?.name ?? "Sem categoria";
       if (!map.has(key)) map.set(key, { key, label, products: [] });
@@ -188,7 +211,7 @@ export function ProdutosPageClient({
       return a.label.localeCompare(b.label);
     });
     return list;
-  }, [products]);
+  }, [optimisticProducts]);
 
   const [collapsedKeys, setCollapsedKeys] = useState<Set<string>>(() => new Set());
 
@@ -241,7 +264,7 @@ export function ProdutosPageClient({
         />
 
         <div className="mt-6 space-y-4">
-          {products.length === 0 ? (
+          {optimisticProducts.length === 0 ? (
             <div className="rounded-card border border-bmq-border bg-white shadow-card py-12 text-center text-bmq-mid-dark">
               Nenhum produto encontrado.
             </div>
@@ -277,6 +300,7 @@ export function ProdutosPageClient({
                             product={p}
                             buildUrl={buildUrl}
                             SIZE_LABELS={SIZE_LABELS}
+                            onDelete={handleDeleteProduct}
                           />
                         ))}
                       </div>

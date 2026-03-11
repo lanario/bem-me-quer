@@ -79,6 +79,7 @@ export async function updateClientAction(
 
 /**
  * Remove um cliente.
+ * Não redireciona para permitir Optimistic UI + router.refresh() no cliente.
  */
 export async function deleteClientAction(id: number): Promise<void> {
   const supabase = await createClient();
@@ -89,5 +90,4 @@ export async function deleteClientAction(id: number): Promise<void> {
   }
 
   revalidatePath("/dashboard/clientes");
-  redirect("/dashboard/clientes");
 }

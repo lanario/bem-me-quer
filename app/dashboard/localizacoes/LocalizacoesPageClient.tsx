@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTransition, useOptimistic } from "react";
 import { FiPlus, FiEdit2 } from "react-icons/fi";
-import { DeleteLocationButton } from "./DeleteLocationButton";
+import { deleteLocationAction } from "@/actions/locations";
+import { DeleteButton } from "@/components/ui/DeleteButton";
 import { SlideOver } from "@/components/ui/SlideOver";
 import { LocationForm } from "./LocationForm";
 import type { Tables } from "@/types/database";
@@ -27,10 +29,25 @@ export function LocalizacoesPageClient({
   editId,
 }: LocalizacoesPageClientProps) {
   const router = useRouter();
+  const [, startTransition] = useTransition();
+  const [optimisticLocations, setOptimisticLocations] = useOptimistic(
+    locations,
+    (state, id: number) => state.filter((loc) => loc.id !== id)
+  );
   const isOpen = openNew || Boolean(editId);
 
   function closeSlideOver() {
     router.push("/dashboard/localizacoes");
+  }
+
+  function handleDeleteLocation(id: number) {
+    startTransition(async () => {
+      // Atualização otimista antes do await elimina a latência percebida no clique.
+      setOptimisticLocations(id);
+      await deleteLocationAction(id);
+      router.refresh();
+      // Se a action falhar, useOptimistic reverte e banco/tela não ficam dessincronizados.
+    });
   }
 
   function renderProducts(locId: number) {
@@ -92,15 +109,15 @@ export function LocalizacoesPageClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-bmq-border">
-              {locations.length === 0 ? (
+              {optimisticLocations.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-4 py-8 text-center text-bmq-mid-dark">
                     Nenhuma localização cadastrada.
                   </td>
                 </tr>
               ) : (
-                locations.map((loc) => (
-                  <tr key={loc.id} className="hover:bg-bmq-mid/10">
+                optimisticLocations.map((loc) => (
+                  <tr key={loc.id} className="transition-all duration-200 hover:bg-bmq-mid/10">
                     <td className="px-4 py-3 text-sm font-medium text-bmq-dark">
                       {loc.name}
                     </td>
@@ -119,7 +136,11 @@ export function LocalizacoesPageClient({
                           <FiEdit2 size={16} />
                           Editar
                         </Link>
-                        <DeleteLocationButton id={loc.id} />
+                        <DeleteButton
+                          action={() => handleDeleteLocation(loc.id)}
+                          label="Excluir"
+                          confirmMessage="Tem certeza que deseja excluir esta localização? Produtos e transferências que usam este local manterão o nome, mas o cadastro será removido."
+                        />
                       </div>
                     </td>
                   </tr>
