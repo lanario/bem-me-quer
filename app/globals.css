@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Paleta Bem Me Quer - tema claro (fundo verde sutil no dashboard, cards brancos) */
+:root {
+  --bmq-dark: #5e7f59;           /* Texto principal: títulos, rótulos, parágrafos */
+  --bmq-mid-dark: #75976f;      /* Ícones, links secundários, bordas sutis */
+  --bmq-mid: #8cae86;           /* Hover, botões secundários */
+  --bmq-accent: #a3c69c;        /* CTA primário, item de menu selecionado */
+  --bmq-bg: #fdfdfd;            /* Fundo da página (gelo) */
+  --bmq-bg-white: #ffffff;     /* Fundo de cartões, barra lateral */
+  --bmq-pageBg: #F4F8F4;        /* Fundo do painel – verde muito sutil */
+  --bmq-cardBg: #FFFFFF;        /* Cards em branco puro */
+  --bmq-border: #eeeeee;        /* Bordas de cartões e tabelas */
+  --bmq-placeholder: #cbd5e0;   /* Placeholder muito claro */
+  --bmq-on-accent: #ffffff;     /* Texto sobre botões verdes */
+}
+
+/* Popup/Toast de feedback: tema claro (Parte 2.2) */
+.bmq-toast {
+  background: var(--bmq-bg-white) !important;
+  color: var(--bmq-dark) !important;
+  border: 1px solid var(--bmq-border);
+}
+.bmq-toast button,
+.bmq-toast [data-primary] {
+  background: var(--bmq-accent) !important;
+  color: var(--bmq-on-accent) !important;
+}
