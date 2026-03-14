@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition, useOptimistic } from "react";
@@ -13,7 +13,7 @@ import { SlideOver } from "@/components/ui/SlideOver";
 import { ProductForm } from "./ProductForm";
 import type { ProductSize, Tables } from "@/types/database";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50;
 
 function ProductCard({
   product: p,
@@ -199,21 +199,29 @@ export function ProdutosPageClient({
   const groups = useMemo(() => {
     const map = new Map<string, ProductGroup>();
     for (const p of optimisticProducts) {
-      const key = p.category_id != null ? String(p.category_id) : "sem_categoria";
       const label = p.categories?.name ?? "Sem categoria";
+      const key = label;
       if (!map.has(key)) map.set(key, { key, label, products: [] });
       map.get(key)!.products.push(p);
     }
     const list = Array.from(map.values());
     list.sort((a, b) => {
-      if (a.key === "sem_categoria") return -1;
-      if (b.key === "sem_categoria") return 1;
+      if (a.key === "Sem categoria") return -1;
+      if (b.key === "Sem categoria") return 1;
       return a.label.localeCompare(b.label);
     });
     return list;
   }, [optimisticProducts]);
 
   const [collapsedKeys, setCollapsedKeys] = useState<Set<string>>(() => new Set());
+  const hasInitializedCollapsed = useRef(false);
+
+  useEffect(() => {
+    if (groups.length > 0 && !hasInitializedCollapsed.current) {
+      setCollapsedKeys(new Set(groups.map((g) => g.key)));
+      hasInitializedCollapsed.current = true;
+    }
+  }, [groups]);
 
   function toggleGroup(key: string) {
     setCollapsedKeys((prev) => {

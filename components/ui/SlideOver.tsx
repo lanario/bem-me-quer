@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { FiX } from "react-icons/fi";
 
-const ANIMATION_MS = 300;
+const ANIMATION_MS = 200;
 
 export interface SlideOverProps {
   open: boolean;
@@ -77,7 +77,7 @@ export function SlideOver({
     <>
       {/* Overlay com transição de opacidade */}
       <div
-        className={`fixed inset-0 z-40 bg-black/30 transition-opacity duration-300 ease-out ${
+        className={`fixed inset-0 z-40 bg-black/30 transition-opacity duration-200 ease-out ${
           slideIn ? "opacity-100" : "opacity-0"
         }`}
         aria-hidden
@@ -85,7 +85,7 @@ export function SlideOver({
       />
       {/* Panel com transição de deslize */}
       <div
-        className={`fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-white shadow-xl transition-transform duration-300 ease-out ${
+        className={`fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-white shadow-xl transition-transform duration-200 ease-out ${
           contentWidth === "wide" ? "max-w-3xl" : "max-w-lg"
         } ${slideIn ? "translate-x-0" : "translate-x-full"}`}
         role="dialog"
