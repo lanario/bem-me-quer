@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { FiEdit2 } from "react-icons/fi";
 import { EstoqueFilters } from "./EstoqueFilters";
@@ -81,6 +82,7 @@ export function EstoquePageClient({
   categories,
   locationNamesById = {},
 }: EstoquePageClientProps) {
+  const router = useRouter();
   const [slideOpen, setSlideOpen] = useState(false);
   const [selectedStock, setSelectedStock] = useState<StockRow | null>(null);
 
@@ -187,7 +189,7 @@ export function EstoquePageClient({
       </div>
       <PaginationBar
         total={total}
-        pageSize={20}
+        pageSize={50}
         currentPage={currentPage}
         basePath={basePath}
       />
@@ -221,6 +223,10 @@ export function EstoquePageClient({
               currentQuantity={selectedStock.quantity}
               currentMinQuantity={selectedStock.min_quantity}
               inSlideOver
+              onSuccess={() => {
+                closeSlide();
+                router.refresh();
+              }}
             />
           </>
         )}

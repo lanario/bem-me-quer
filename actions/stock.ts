@@ -2,11 +2,10 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 export type AdjustmentReason = "INVENTARIO" | "PERDA" | "ACHADO" | "CORRECAO";
 
-export type AdjustStockFormState = { error?: string };
+export type AdjustStockFormState = { error?: string; success?: boolean };
 
 /**
  * Ajusta a quantidade do estoque e registra movimentação (tipo AJUSTE).
@@ -81,5 +80,5 @@ export async function adjustStockAction(
 
   revalidatePath("/dashboard/estoque");
   revalidatePath(`/dashboard/estoque/${stockId}/ajustar`);
-  redirect("/dashboard/estoque");
+  return { success: true };
 }

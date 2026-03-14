@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { EstoquePageClient, type StockRow } from "./EstoquePageClient";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50;
 
 export default async function EstoquePage({
   searchParams,

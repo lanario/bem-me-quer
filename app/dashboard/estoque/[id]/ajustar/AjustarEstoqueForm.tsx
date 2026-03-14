@@ -1,9 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useFormState } from "react-dom";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useFormState, useFormStatus } from "react-dom";
 import { adjustStockAction, type AdjustStockFormState, type AdjustmentReason } from "@/actions/stock";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+
+function SavingIndicator() {
+  const { pending } = useFormStatus();
+  if (!pending) return null;
+  return (
+    <div
+      className="flex items-center gap-2 rounded-lg border border-bmq-accent/30 bg-bmq-accent/10 px-4 py-3 text-sm font-medium text-bmq-dark"
+      role="status"
+      aria-live="polite"
+    >
+      <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-bmq-accent border-t-transparent" />
+      Salvando...
+    </div>
+  );
+}
 
 interface AjustarEstoqueFormProps {
   stockId: number;
@@ -12,6 +29,8 @@ interface AjustarEstoqueFormProps {
   currentMinQuantity?: number;
   /** Quando true, oculta o link Cancelar (sidebar tem seu próprio fechamento). */
   inSlideOver?: boolean;
+  /** Chamado após o ajuste ser salvo com sucesso (ex.: fechar a sidebar e dar refresh). */
+  onSuccess?: () => void;
 }
 
 const REASONS: { value: AdjustmentReason; label: string }[] = [
@@ -21,14 +40,31 @@ const REASONS: { value: AdjustmentReason; label: string }[] = [
   { value: "CORRECAO", label: "Correção" },
 ];
 
-export function AjustarEstoqueForm({ stockId, currentQuantity, currentMinQuantity = 0, inSlideOver }: AjustarEstoqueFormProps) {
+export function AjustarEstoqueForm({
+  stockId,
+  currentQuantity,
+  currentMinQuantity = 0,
+  inSlideOver,
+  onSuccess,
+}: AjustarEstoqueFormProps) {
+  const router = useRouter();
   const [state, formAction] = useFormState<AdjustStockFormState, FormData>(
     (prev, formData) => adjustStockAction(stockId, prev, formData),
     {}
   );
 
+  useEffect(() => {
+    if (!state?.success) return;
+    if (inSlideOver && onSuccess) {
+      onSuccess();
+    } else if (!inSlideOver) {
+      router.push("/dashboard/estoque");
+    }
+  }, [state?.success, inSlideOver, onSuccess, router]);
+
   return (
     <form action={formAction} className="max-w-md space-y-4">
+      <SavingIndicator />
       {state?.error && (
         <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
           {state.error}
@@ -79,7 +115,7 @@ export function AjustarEstoqueForm({ stockId, currentQuantity, currentMinQuantit
         />
       </label>
       <div className="flex gap-3">
-        <SubmitButton loadingText="Aplicando…">
+        <SubmitButton loadingText="Salvando...">
           Aplicar ajuste
         </SubmitButton>
         {!inSlideOver && (
