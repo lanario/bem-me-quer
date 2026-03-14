@@ -14,7 +14,7 @@ import { SlideOver } from "@/components/ui/SlideOver";
 import { ProductForm } from "./ProductForm";
 import type { ProductSize, Tables } from "@/types/database";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 100;
 
 function ProductCard({
   product: p,

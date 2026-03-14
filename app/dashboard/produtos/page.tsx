@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ProdutosPageClient } from "./ProdutosPageClient";
 import type { ProductSize, Tables } from "@/types/database";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 100;
 
 export default async function ProdutosPage({
   searchParams,
