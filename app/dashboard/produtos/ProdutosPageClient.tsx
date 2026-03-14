@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition, useOptimistic } from "react";
 import { FiPlus, FiEdit2, FiPackage, FiDollarSign, FiClipboard, FiFolder, FiChevronDown, FiChevronRight } from "react-icons/fi";
@@ -52,8 +53,19 @@ function ProductCard({
       style={{ backgroundColor: "var(--bmq-cardBg, #FFFFFF)" }}
     >
       <div className="flex items-start gap-3 mb-3">
-        <div className="rounded-lg bg-bmq-mid/20 p-2 shrink-0">
-          <FiPackage className="text-bmq-dark" size={24} />
+        <div className="rounded-lg bg-bmq-mid/20 overflow-hidden shrink-0 w-14 h-14 flex items-center justify-center">
+          {p.image_url ? (
+            <Image
+              src={p.image_url}
+              alt={p.title}
+              width={56}
+              height={56}
+              className="object-cover w-full h-full"
+              unoptimized={p.image_url.includes("supabase")}
+            />
+          ) : (
+            <FiPackage className="text-bmq-dark" size={24} />
+          )}
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="font-semibold text-bmq-dark truncate">{p.title}</h3>

@@ -7,6 +7,50 @@ import type { Insertable, Updatable } from "@/types/database";
 
 export type ProductFormState = { error?: string };
 
+/** Nome do bucket de imagens de produtos no Supabase Storage (criar no dashboard). */
+const PRODUCTS_BUCKET = "produtos";
+const MAX_IMAGE_SIZE_MB = 2;
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+function getExtensionFromFile(file: File): string {
+  const name = file.name ?? "";
+  const ext = name.slice(name.lastIndexOf(".")).toLowerCase();
+  if (ext === ".jpg" || ext === ".jpeg") return "jpg";
+  if (ext === ".png") return "png";
+  if (ext === ".webp") return "webp";
+  const fromMime: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+  };
+  return fromMime[file.type] ?? "jpg";
+}
+
+/**
+ * Faz upload da imagem no bucket e retorna a URL pública, ou null se falhar.
+ */
+async function uploadProductImage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  productId: number,
+  file: File
+): Promise<string | null> {
+  if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) return null;
+  if (!ALLOWED_TYPES.includes(file.type)) return null;
+
+  const ext = getExtensionFromFile(file);
+  const path = `${productId}/foto.${ext}`;
+
+  const { error } = await supabase.storage.from(PRODUCTS_BUCKET).upload(path, file, {
+    cacheControl: "3600",
+    upsert: true,
+  });
+
+  if (error) return null;
+
+  const { data } = supabase.storage.from(PRODUCTS_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
+
 function parseDecimal(value: FormDataEntryValue | null): number | null {
   if (value == null || value === "") return null;
   const n = Number(String(value).replace(",", "."));
@@ -81,7 +125,19 @@ export async function createProductAction(
   }
 
   const product = productData as { id: number } | null;
-  if (track_stock && product?.id) {
+  if (!product?.id) {
+    return { error: "Produto não foi criado." };
+  }
+
+  const imageFile = formData.get("image") as File | null;
+  if (imageFile && imageFile.size > 0) {
+    const imageUrl = await uploadProductImage(supabase, product.id, imageFile);
+    if (imageUrl) {
+      await supabase.from("products").update({ image_url: imageUrl }).eq("id", product.id);
+    }
+  }
+
+  if (track_stock) {
     const location_id = await getDefaultLocationId(supabase);
     if (location_id == null) {
       return { error: "Cadastre ao menos uma localização (ex: Principal) em Localizações." };
@@ -134,6 +190,13 @@ export async function updateProductAction(
 
   const supabase = await createClient();
 
+  const imageFile = formData.get("image") as File | null;
+  let image_url: string | null | undefined;
+  if (imageFile && imageFile.size > 0) {
+    const url = await uploadProductImage(supabase, id, imageFile);
+    image_url = url ?? undefined;
+  }
+
   const payload: Updatable<"products"> = {
     title,
     description,
@@ -143,6 +206,7 @@ export async function updateProductAction(
     brand_id: brand_id ?? null,
     category_id: category_id ?? null,
     track_stock,
+    ...(image_url !== undefined && { image_url }),
   };
 
   const { error: errProduct } = await supabase

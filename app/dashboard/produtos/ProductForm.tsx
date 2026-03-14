@@ -1,7 +1,8 @@
 "use client";
 
-import { useFormState } from "react-dom";
+import { useFormState, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   createProductAction,
   updateProductAction,
@@ -25,6 +26,7 @@ interface ProductFormProps {
 
 export function ProductForm({ product, initialCostPrice, initialMinQuantity, initialExpiryDate, brands, categories, inSlideOver }: ProductFormProps) {
   const isEdit = Boolean(product?.id);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [state, formAction] = useFormState(
     isEdit
       ? (_prev: ProductFormState, formData: FormData) =>
@@ -33,8 +35,48 @@ export function ProductForm({ product, initialCostPrice, initialMinQuantity, ini
     {} as ProductFormState
   );
 
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setPreviewUrl(file ? URL.createObjectURL(file) : null);
+  }
+
+  const currentImageUrl = previewUrl ?? (product?.image_url ?? null);
+
   return (
-    <form action={formAction} className="max-w-xl space-y-4">
+    <form action={formAction} className="max-w-xl space-y-4" encType="multipart/form-data">
+      <div>
+        <label className="block text-sm font-medium text-bmq-dark mb-1">
+          Imagem do produto
+        </label>
+        <p className="text-xs text-bmq-mid-dark mb-2">
+          JPG, PNG ou WebP. Máx. 2 MB.
+        </p>
+        <div className="flex items-start gap-4">
+          {currentImageUrl && (
+            <div className="relative w-24 h-24 rounded-lg border border-bmq-border overflow-hidden bg-bmq-mid/10 shrink-0">
+              <Image
+                src={currentImageUrl}
+                alt="Preview"
+                fill
+                className="object-cover"
+                sizes="96px"
+                unoptimized={currentImageUrl.startsWith("https://") && currentImageUrl.includes("supabase")}
+              />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <input
+              id="image"
+              name="image"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={handleImageChange}
+              className="w-full text-sm text-bmq-dark file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-bmq-accent file:text-white hover:file:bg-bmq-mid"
+            />
+          </div>
+        </div>
+      </div>
       <div>
         <label htmlFor="title" className="block text-sm font-medium text-bmq-dark mb-1">
           Nome *
