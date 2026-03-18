@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { FiArrowLeft } from "react-icons/fi";
+import { ExportPdfButton } from "@/components/reports/ExportPdfButton";
+import { getVendaPdf } from "@/actions/reports-pdf";
 import { ConfirmSellButton } from "../ConfirmSellButton";
 import { CancelSellButton } from "../CancelSellButton";
 import { RemoveSellItemButton } from "../RemoveSellItemButton";
@@ -44,7 +46,7 @@ export default async function VendaDetalhePage({
 
   const { data: sellData, error } = await supabase
     .from("sells")
-    .select("*")
+    .select("*, clients(name, email, phone, address)")
     .eq("id", Number(id))
     .single();
 
@@ -70,10 +72,17 @@ export default async function VendaDetalhePage({
         Voltar
       </Link>
       <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-bmq-dark">Venda #{sell.id}</h1>
-        <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${badge.className}`}>
-          {badge.label}
-        </span>
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl font-bold text-bmq-dark">Venda #{sell.id}</h1>
+          <span className={`inline-flex rounded-full px-3 py-1 text-sm font-medium ${badge.className}`}>
+            {badge.label}
+          </span>
+        </div>
+        <ExportPdfButton
+          exportAction={getVendaPdf}
+          exportParams={{ sellId: sell.id }}
+          label="Baixar PDF"
+        />
       </div>
 
       <div className="rounded-xl border border-bmq-border bg-white p-6 mb-6">

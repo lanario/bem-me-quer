@@ -40,7 +40,29 @@ export function ExportPdfButton<T extends Record<string, unknown>>({
         exportAction && exportParams !== undefined
           ? await exportAction(exportParams as T)
           : await (onExport as () => Promise<PdfResult>)();
-      const binary = atob(result.pdfBase64);
+      const normalizedPdfBase64 = (result?.pdfBase64 ?? "").replace(/\s/g, "");
+      let base64 = normalizedPdfBase64;
+
+      // Alguns geradores podem retornar um "data:application/pdf;base64,..."
+      // Em vez de base64 puro; nesse caso, extraimos apos a virgula.
+      if (base64.startsWith("data:")) {
+        const commaIndex = base64.indexOf(",");
+        base64 = commaIndex >= 0 ? base64.slice(commaIndex + 1) : "";
+      }
+
+      if (!base64) {
+        alert("PDF nao foi gerado. Verifique os dados da venda e do perfil da empresa (Cadastros > Perfil Bem Me Quer).");
+        return;
+      }
+
+      let binary: string;
+      try {
+        binary = atob(base64);
+      } catch {
+        alert("PDF nao foi gerado. O conteudo do PDF esta invalido (base64 corrompido).");
+        return;
+      }
+
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
       const blob = new Blob([bytes], { type: "application/pdf" });

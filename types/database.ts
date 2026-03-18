@@ -409,6 +409,58 @@ export interface Database {
         >;
         Relationships: [];
       };
+      company_profile: {
+        Row: {
+          id: number;
+          empresa: string;
+          cnpj: string;
+          email: string;
+          celular: string;
+          endereco: string;
+          logo_url: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          empresa: string;
+          cnpj: string;
+          email: string;
+          celular: string;
+          endereco: string;
+          logo_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["company_profile"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      pdf_templates: {
+        Row: {
+          id: number;
+          template_key: string;
+          primary_color: string;
+          table_header_color: string;
+          table_header_text_color: string;
+          row_alt_color: string;
+          line_color: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: number;
+          template_key: string;
+          primary_color?: string;
+          table_header_color?: string;
+          table_header_text_color?: string;
+          row_alt_color?: string;
+          line_color?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["pdf_templates"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

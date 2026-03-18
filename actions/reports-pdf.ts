@@ -2,8 +2,10 @@
 
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import fs from "node:fs/promises";
+import path from "node:path";
 import { createClient } from "@/lib/supabase/server";
-import type { MovementReason, MovementType } from "@/types/database";
+import type { MovementReason, MovementType, Tables } from "@/types/database";
 
 const MONTH_NAMES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -14,6 +16,26 @@ function formatCurrency(value: number): string {
   return value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/** Converte acentos para ASCII (evita PDF corrompido com fonte helvetica). */
+function sanitizeForPdf(s: string | null | undefined): string {
+  if (s == null || typeof s !== "string") return "";
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
+function hexToRgb(hex: string | null | undefined): { r: number; g: number; b: number } {
+  const fallback = { r: 30, g: 64, b: 120 };
+  const v = (hex ?? "").trim();
+  const match = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(v);
+  if (!match) return fallback;
+
+  const raw = match[1];
+  const expanded = raw.length === 3 ? raw.split("").map((c) => `${c}${c}`).join("") : raw;
+  const num = Number.parseInt(expanded, 16);
+  if (!Number.isFinite(num)) return fallback;
+
+  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+}
+
 function addHeader(doc: jsPDF, title: string): void {
   doc.setFontSize(18);
   doc.text(title, 14, 22);
@@ -21,9 +43,22 @@ function addHeader(doc: jsPDF, title: string): void {
   doc.text(`Gerado em ${new Date().toLocaleString("pt-BR")}`, 14, 28);
 }
 
-/** Retorna o PDF em base64 (jsPDF.output aceita "base64" em runtime; a tipagem pode restringir). */
+/**
+ * Retorna o PDF em base64.
+ * Observacao: dependendo do runtime, `jsPDF.output("base64")` pode retornar `""`.
+ * Nesse caso, usamos `output("datauristring")` e extraimos apos a virgula.
+ */
 function getPdfBase64(doc: jsPDF): string {
-  return (doc.output as (format: string) => string)("base64");
+  const dataUri = (doc.output as (format: string) => string)("datauristring");
+  if (!dataUri) return "";
+
+  if (dataUri.startsWith("data:")) {
+    const commaIndex = dataUri.indexOf(",");
+    if (commaIndex >= 0) return dataUri.slice(commaIndex + 1);
+  }
+
+  // Caso algum runtime ja retorne somente o base64.
+  return dataUri;
 }
 
 /**
@@ -404,4 +439,273 @@ export async function getValorEstoquePdf(): Promise<{ pdfBase64: string; filenam
     headStyles: { fillColor: [34, 139, 34] },
   });
   return { pdfBase64: getPdfBase64(doc), filename: `valor-estoque-${new Date().toISOString().slice(0, 10)}.pdf` };
+}
+
+/** Busca logo em base64 para o PDF (se URL válida). */
+async function fetchLogoBase64(url: string | null | undefined): Promise<{ data: string; format: "PNG" | "JPEG" } | null> {
+  if (!url || !url.startsWith("http")) return null;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const buf = await res.arrayBuffer();
+    const b64 = Buffer.from(buf).toString("base64");
+    const format = /\.jpe?g$/i.test(url) ? "JPEG" : "PNG";
+    return { data: `data:image/${format.toLowerCase()};base64,${b64}`, format };
+  } catch {
+    return null;
+  }
+}
+
+async function fetchLogoBase64FromPublic(fileName: string): Promise<{ data: string; format: "PNG" | "JPEG" } | null> {
+  try {
+    const filePath = path.join(process.cwd(), "public", fileName);
+    const buf = await fs.readFile(filePath);
+    const b64 = Buffer.from(buf).toString("base64");
+    const format: "PNG" | "JPEG" = /\.jpe?g$/i.test(fileName) ? "JPEG" : "PNG";
+    return { data: `data:image/${format.toLowerCase()};base64,${b64}`, format };
+  } catch {
+    return null;
+  }
+}
+
+/** Gera PDF minimo com mensagem de erro (fallback). */
+function errorPdf(message: string, filename: string): { pdfBase64: string; filename: string } {
+  const doc = new jsPDF();
+  doc.setFontSize(12);
+  doc.text("Erro ao gerar PDF", 14, 20);
+  doc.setFontSize(10);
+  doc.text(sanitizeForPdf(message).slice(0, 100), 14, 30);
+  return { pdfBase64: getPdfBase64(doc), filename };
+}
+
+/**
+ * PDF da venda no formato comercial (logo, prestador, cliente, tabela).
+ */
+export async function getVendaPdf(params: { sellId: number }): Promise<{ pdfBase64: string; filename: string }> {
+  const sellId = Number(params.sellId);
+  if (!sellId || !Number.isFinite(sellId)) {
+    const doc = new jsPDF();
+    doc.text("ID da venda invalido.", 14, 20);
+    return { pdfBase64: getPdfBase64(doc), filename: "venda-invalida.pdf" };
+  }
+
+  try {
+    const supabase = await createClient();
+
+    let profileData: unknown = null;
+    try {
+      const res = await supabase.from("company_profile").select("*").eq("id", 1).single();
+      profileData = res.data;
+    } catch {
+      profileData = null;
+    }
+
+    const { data: sellData, error } = await supabase
+      .from("sells")
+      .select("*, clients(name, email, phone, address)")
+      .eq("id", sellId)
+      .single();
+
+    const profile = profileData as {
+    empresa: string;
+    cnpj: string;
+    email: string;
+    celular: string;
+    endereco: string;
+    logo_url: string | null;
+  } | null;
+
+    if (error || !sellData) {
+    const doc = new jsPDF();
+    doc.text("Venda nao encontrada.", 14, 20);
+      return { pdfBase64: getPdfBase64(doc), filename: `venda-${sellId}.pdf` };
+    }
+
+    const sell = sellData as {
+    id: number;
+    data: string;
+    total_value: number;
+    status: string;
+    clients?: { name: string; email?: string; phone?: string; address?: string } | null;
+    };
+
+    const { data: itemsData } = await supabase
+    .from("sell_items")
+    .select("*, products(title)")
+      .eq("sell_id", sellId);
+    const items = (itemsData ?? []) as {
+    quantity: number;
+    unitary_price: number | null;
+    subtotal: number;
+    products?: { title: string } | null;
+    }[];
+
+    const doc = new jsPDF();
+    const pageW = 210; // A4 width em mm
+
+    const DEFAULT_TEMPLATE = {
+      primary_color: "#1e4078",
+      table_header_color: "#1e4078",
+      table_header_text_color: "#ffffff",
+      row_alt_color: "#f5f5f5",
+      line_color: "#d2d2d2",
+    };
+
+    let template: Tables<"pdf_templates"> | null = null;
+    try {
+      const { data: templateData } = await supabase
+        .from("pdf_templates")
+        .select("*")
+        .eq("template_key", "nota_fiscal")
+        .single();
+      if (templateData) template = templateData as Tables<"pdf_templates">;
+    } catch {
+      template = null;
+    }
+
+    const primaryRgb = hexToRgb(template?.primary_color ?? DEFAULT_TEMPLATE.primary_color);
+    const tableHeaderRgb = hexToRgb(template?.table_header_color ?? DEFAULT_TEMPLATE.table_header_color);
+    const tableHeaderTextRgb = hexToRgb(
+      template?.table_header_text_color ?? DEFAULT_TEMPLATE.table_header_text_color,
+    );
+    const rowAltRgb = hexToRgb(template?.row_alt_color ?? DEFAULT_TEMPLATE.row_alt_color);
+    const lineRgb = hexToRgb(template?.line_color ?? DEFAULT_TEMPLATE.line_color);
+
+    // Perfil: garantir que nenhum campo seja null/undefined para nao quebrar o PDF
+    const empresa = String(profile?.empresa ?? "Bem me Quer").trim() || "Bem me Quer";
+    const cnpj = String(profile?.cnpj ?? "").trim();
+    const email = String(profile?.email ?? "").trim();
+    const celular = String(profile?.celular ?? "").trim();
+    const endereco = String(profile?.endereco ?? "").trim();
+    const logoUrl = profile?.logo_url != null ? String(profile.logo_url).trim() || null : null;
+
+    // Header (mesmo conceito do Orcamento): faixa clara + logo no canto esquerdo.
+    const headerBg = { r: 170, g: 181, b: 165 }; // ajuste fino pode ser necessario para ficar 1:1
+    const headerBgY = 6;
+    const headerBgH = 30;
+
+    doc.setFillColor(headerBg.r, headerBg.g, headerBg.b);
+    doc.rect(0, headerBgY, pageW, headerBgH, "F");
+
+    let logoData: { data: string; format: "PNG" | "JPEG" } | null = null;
+    // Prioridade: URL definida no perfil; fallback: logo local do projeto.
+    try {
+      logoData = await fetchLogoBase64(logoUrl);
+    } catch {
+      logoData = null;
+    }
+    if (!logoData) logoData = await fetchLogoBase64FromPublic("logo_bmq_transp.png");
+    if (logoData) {
+      try {
+        doc.addImage(logoData.data, logoData.format, 14, headerBgY + 6, 38, 18);
+      } catch {
+        // Ignora falha do logo e segue com o template (o PDF nao deve quebrar).
+      }
+    }
+
+    // Nome da empresa no topo (alinhado a direita como no Orcamento).
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text(sanitizeForPdf(empresa), pageW - 14, headerBgY + 10, { align: "right" });
+
+    const headerY = headerBgY + headerBgH; // topo do conteudo principal
+
+    const emissao = new Date(sell.data).toLocaleDateString("pt-BR");
+    doc.setFontSize(9);
+    doc.setTextColor(80, 80, 80);
+    doc.text(`EMISSAO: ${emissao} • VENDA #${sell.id}`, pageW - 14, headerY + 1, { align: "right" });
+    doc.setTextColor(0, 0, 0);
+
+    let y = headerY + 10;
+
+    const colLeft = 14;
+    const colRight = 110;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.text("PRESTADOR", colLeft, y);
+    doc.text("CLIENTE", colRight, y);
+    doc.setFont("helvetica", "normal");
+    y += 6;
+
+    const prestadorLines = [
+      `EMPRESA: ${sanitizeForPdf(empresa)}`,
+      cnpj ? `CNPJ: ${sanitizeForPdf(cnpj)}` : null,
+      email ? `EMAIL: ${sanitizeForPdf(email)}` : null,
+      celular ? `CELULAR: ${sanitizeForPdf(celular)}` : null,
+      endereco ? `ENDERECO: ${sanitizeForPdf(endereco)}` : null,
+    ].filter(Boolean) as string[];
+
+      const client = sell.clients;
+    const clientName = client?.name != null ? String(client.name).trim() : "";
+    const clientEmail = client?.email != null ? String(client.email).trim() : "";
+    const clientPhone = client?.phone != null ? String(client.phone).trim() : "";
+    const clientAddress = client?.address != null ? String(client.address).trim() : "";
+    const clienteLines = [
+      clientName ? `NOME: ${sanitizeForPdf(clientName)}` : null,
+      clientEmail ? `EMAIL: ${sanitizeForPdf(clientEmail)}` : null,
+      clientPhone ? `TELEFONE: ${sanitizeForPdf(clientPhone)}` : null,
+      clientAddress ? `ENDERECO: ${sanitizeForPdf(clientAddress)}` : null,
+    ].filter(Boolean) as string[];
+
+    doc.setFontSize(9);
+    for (let i = 0; i < Math.max(prestadorLines.length, clienteLines.length); i++) {
+      if (prestadorLines[i]) doc.text(prestadorLines[i], colLeft, y);
+      if (clienteLines[i]) doc.text(clienteLines[i], colRight, y);
+      y += 5;
+    }
+    y += 8;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text(sanitizeForPdf("PRODUTOS/SERVIÇOS"), 14, y);
+    doc.setFont("helvetica", "normal");
+    y += 6;
+
+    const body = items.map((item) => [
+    String(item.quantity),
+    sanitizeForPdf(item.products?.title ?? "—").slice(0, 50),
+    `R$ ${formatCurrency(Number(item.unitary_price ?? 0))}`,
+    `R$ ${formatCurrency(Number(item.subtotal))}`,
+    ]);
+
+    autoTable(doc, {
+    startY: y,
+    head: [["QTD.", "DESCRIÇÃO", "VALOR", "SUBTOTAL"]],
+    body,
+    theme: "grid",
+    headStyles: {
+      fillColor: [tableHeaderRgb.r, tableHeaderRgb.g, tableHeaderRgb.b],
+      textColor: [tableHeaderTextRgb.r, tableHeaderTextRgb.g, tableHeaderTextRgb.b],
+    },
+    styles: { font: "helvetica", fontSize: 9, cellPadding: 2, lineColor: [lineRgb.r, lineRgb.g, lineRgb.b] },
+    alternateRowStyles: { fillColor: [rowAltRgb.r, rowAltRgb.g, rowAltRgb.b] },
+      columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 95 }, 2: { cellWidth: 35 }, 3: { cellWidth: 35 } },
+    });
+    y = (doc as jsPDF & { lastAutoTable?: { finalY?: number } }).lastAutoTable?.finalY ?? y + 10;
+    y += 8;
+
+    const totalValue = Number(sell.total_value);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Subtotal: R$ ${formatCurrency(totalValue)}`, pageW - 14, y, { align: "right" });
+    y += 5;
+    doc.setFontSize(12);
+    doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
+    doc.text(`TOTAL: R$ ${formatCurrency(totalValue)}`, pageW - 14, y, { align: "right" });
+    doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "normal");
+    y += 10;
+
+    doc.setFontSize(8);
+    doc.setTextColor(120, 120, 120);
+    doc.text(`Gerado em ${new Date().toLocaleString("pt-BR")}`, 14, y);
+
+    return { pdfBase64: getPdfBase64(doc), filename: `venda-${sellId}-${new Date().toISOString().slice(0, 10)}.pdf` };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Erro desconhecido";
+    return errorPdf(`Execute a migration 00010_company_profile.sql no Supabase. Detalhe: ${msg}`, `venda-${sellId}-erro.pdf`);
+  }
 }

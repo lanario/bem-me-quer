@@ -15,9 +15,11 @@ import {
   FiTag,
   FiUsers,
   FiBarChart2,
+  FiFileText,
   FiLogOut,
   FiTruck,
   FiCornerDownLeft,
+  FiSettings,
 } from "react-icons/fi";
 import { signOut } from "@/actions/auth";
 import { AnimatedIcon, type AnimatedIconName } from "@/components/ui/AnimatedIcon";
@@ -61,7 +63,11 @@ const menuSections: MenuSection[] = [
   },
   {
     title: "Cadastros",
-    items: [{ href: "/dashboard/clientes", label: "Clientes", icon: FiUsers, animation: "bounce" }],
+    items: [
+      { href: "/dashboard/clientes", label: "Clientes", icon: FiUsers, animation: "bounce" },
+      { href: "/dashboard/perfil-bem-me-quer", label: "Perfil Bem Me Quer", icon: FiSettings, animation: "bounce" },
+      { href: "/dashboard/modelos-pdf", label: "Modelos de PDF", icon: FiFileText, animation: "bounce" },
+    ],
   },
   {
     title: "Análises",
