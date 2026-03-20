@@ -6,6 +6,7 @@ import { ExportPdfButton } from "@/components/reports/ExportPdfButton";
 import { getVendaPdf } from "@/actions/reports-pdf";
 import { ConfirmSellButton } from "../ConfirmSellButton";
 import { CancelSellButton } from "../CancelSellButton";
+import { DeleteSellButton } from "../DeleteSellButton";
 import { RemoveSellItemButton } from "../RemoveSellItemButton";
 import type { Tables } from "@/types/database";
 
@@ -100,6 +101,10 @@ export default async function VendaDetalhePage({
             <dt className="text-bmq-mid-dark">Total</dt>
             <dd className="font-medium text-bmq-dark">R$ {Number(sell.total_value).toFixed(2)}</dd>
           </div>
+          <div>
+            <dt className="text-bmq-mid-dark">Desconto</dt>
+            <dd className="font-medium text-bmq-dark">R$ {Number(sell.discount_value ?? 0).toFixed(2)}</dd>
+          </div>
         </dl>
       </div>
 
@@ -152,7 +157,19 @@ export default async function VendaDetalhePage({
         </div>
       )}
       {sell.status === "CONCLUIDA" && (
-        <CancelSellButton sellId={sell.id} received />
+        <div className="flex flex-wrap gap-3">
+          <CancelSellButton sellId={sell.id} received />
+        </div>
+      )}
+      {sell.status === "PENDENTE" && (
+        <div className="mt-4">
+          <DeleteSellButton sellId={sell.id} />
+        </div>
+      )}
+      {sell.status === "CANCELADA" && (
+        <div className="mt-4">
+          <DeleteSellButton sellId={sell.id} />
+        </div>
       )}
     </div>
   );

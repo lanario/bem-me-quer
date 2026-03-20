@@ -24,6 +24,7 @@ interface SellFormProps {
   sell?: {
     id: number;
     client_id: number;
+    discount_value?: number;
     sell_items?: { product_id: number; quantity: number; unitary_price: number | null }[];
   } | null;
   inSlideOver?: boolean;
@@ -31,8 +32,25 @@ interface SellFormProps {
 
 interface ItemRow {
   product_id: number;
-  quantity: number;
-  unitary_price: number;
+  quantity_input: string;
+  unitary_price_input: string;
+}
+
+function parseQuantityInput(value: string): number {
+  const onlyDigits = value.replace(/\D/g, "");
+  const n = Number(onlyDigits);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.floor(n));
+}
+
+function parseMoneyInput(value: string): number {
+  const normalized = value.replace(/\./g, "").replace(",", ".");
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function formatMoneyInput(value: number): string {
+  return value.toFixed(2).replace(".", ",");
 }
 
 export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps) {
@@ -41,12 +59,15 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
     sell?.sell_items?.length ?? 0
       ? (sell!.sell_items!.map((i) => ({
           product_id: i.product_id,
-          quantity: i.quantity,
-          unitary_price: i.unitary_price ?? 0,
+          quantity_input: String(i.quantity),
+          unitary_price_input: formatMoneyInput(i.unitary_price ?? 0),
         })) as ItemRow[])
-      : [{ product_id: products[0]?.id ?? 0, quantity: 1, unitary_price: products[0]?.defaultPrice ?? 0 }];
+      : [{ product_id: products[0]?.id ?? 0, quantity_input: "1", unitary_price_input: formatMoneyInput(products[0]?.defaultPrice ?? 0) }];
 
   const [items, setItems] = useState<ItemRow[]>(initialItems);
+  const [discountInput, setDiscountInput] = useState<string>(
+    sell?.discount_value && sell.discount_value > 0 ? formatMoneyInput(sell.discount_value) : "",
+  );
 
   const getDefaultPrice = useCallback(
     (productId: number) => products.find((p) => p.id === productId)?.defaultPrice ?? 0,
@@ -57,7 +78,7 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
     const firstId = products[0]?.id ?? 0;
     setItems((prev) => [
       ...prev,
-      { product_id: firstId, quantity: 1, unitary_price: getDefaultPrice(firstId) },
+      { product_id: firstId, quantity_input: "1", unitary_price_input: formatMoneyInput(getDefaultPrice(firstId)) },
     ]);
   }, [products, getDefaultPrice]);
 
@@ -66,13 +87,13 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
   }, []);
 
   const updateRow = useCallback(
-    (index: number, field: keyof ItemRow, value: number) => {
+    (index: number, field: keyof ItemRow, value: number | string) => {
       setItems((prev) => {
         const next = prev.map((row, i) =>
-          i === index ? { ...row, [field]: value } : row
+          i === index ? { ...row, [field]: value as never } : row
         );
         if (field === "product_id") {
-          next[index]!.unitary_price = getDefaultPrice(value);
+          next[index]!.unitary_price_input = formatMoneyInput(getDefaultPrice(value as number));
         }
         return next;
       });
@@ -80,7 +101,13 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
     [getDefaultPrice]
   );
 
-  const total = items.reduce((acc, row) => acc + row.quantity * row.unitary_price, 0);
+  const totalBruto = items.reduce(
+    (acc, row) => acc + parseQuantityInput(row.quantity_input) * parseMoneyInput(row.unitary_price_input),
+    0,
+  );
+  const discountValueRaw = parseMoneyInput(discountInput);
+  const discountValue = Math.min(Math.max(discountValueRaw, 0), totalBruto);
+  const total = Math.max(0, totalBruto - discountValue);
 
   const formAction = isEdit
     ? (_prev: SellFormState, formData: FormData) =>
@@ -123,7 +150,7 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
           <button
             type="button"
             onClick={addRow}
-            className="inline-flex items-center gap-2 rounded-lg border border-bmq-border bg-white px-3 py-1.5 text-sm font-medium text-bmq-dark hover:bg-bmq-mid/20"
+            className="inline-flex items-center gap-2 rounded-lg border border-bmq-accent bg-bmq-accent/10 px-3 py-1.5 text-sm font-medium text-bmq-dark hover:bg-bmq-accent/20"
           >
             <FiPlus size={18} />
             Adicionar item
@@ -161,11 +188,11 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
                   </td>
                   <td className="px-4 py-2">
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       name="item_quantity"
-                      min={1}
-                      value={row.quantity}
-                      onChange={(e) => updateRow(index, "quantity", Math.max(1, Number(e.target.value)))}
+                      value={row.quantity_input}
+                      onChange={(e) => updateRow(index, "quantity_input", e.target.value)}
                       className="w-24 rounded-lg border border-bmq-border px-3 py-2 text-sm text-right focus:border-bmq-accent focus:outline-none focus:ring-1 focus:ring-bmq-accent"
                     />
                   </td>
@@ -174,27 +201,19 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
                       type="text"
                       inputMode="decimal"
                       name="item_unitary_price"
-                      min={0}
-                      step="0.01"
-                      value={row.unitary_price || ""}
-                      onChange={(e) =>
-                        updateRow(
-                          index,
-                          "unitary_price",
-                          parseFloat(String(e.target.value).replace(",", ".")) || 0
-                        )
-                      }
+                      value={row.unitary_price_input}
+                      onChange={(e) => updateRow(index, "unitary_price_input", e.target.value)}
                       className="w-28 rounded-lg border border-bmq-border px-3 py-2 text-sm text-right focus:border-bmq-accent focus:outline-none focus:ring-1 focus:ring-bmq-accent"
                     />
                   </td>
                   <td className="px-4 py-2 text-sm text-right text-bmq-dark font-medium">
-                    R$ {(row.quantity * row.unitary_price).toFixed(2)}
+                    R$ {(parseQuantityInput(row.quantity_input) * parseMoneyInput(row.unitary_price_input)).toFixed(2)}
                   </td>
                   <td className="px-4 py-2">
                     <button
                       type="button"
                       onClick={() => removeRow(index)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 rounded"
+                      className="rounded border border-bmq-accent/40 bg-bmq-accent/10 p-1.5 text-bmq-dark hover:bg-bmq-accent/20"
                       title="Remover item"
                     >
                       <FiTrash2 size={18} />
@@ -205,6 +224,23 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
             </tbody>
           </table>
         </div>
+        <div className="mt-4 flex justify-end">
+          <label className="flex items-center gap-2 text-sm text-bmq-dark">
+            Desconto (R$):
+            <input
+              type="text"
+              inputMode="decimal"
+              name="discount_value"
+              value={discountInput}
+              placeholder="0,00"
+              onChange={(e) => setDiscountInput(e.target.value)}
+              className="w-28 rounded-lg border border-bmq-border px-3 py-2 text-sm text-right focus:border-bmq-accent focus:outline-none focus:ring-1 focus:ring-bmq-accent"
+            />
+          </label>
+        </div>
+        <p className="mt-2 text-right text-sm text-bmq-mid-dark">
+          Subtotal: R$ {totalBruto.toFixed(2)} {discountValue > 0 ? `• Desconto: - R$ ${discountValue.toFixed(2)}` : ""}
+        </p>
         <p className="mt-4 text-right text-lg font-semibold text-bmq-dark">
           Total: R$ {total.toFixed(2)}
         </p>
@@ -217,7 +253,7 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
         {!inSlideOver && (
           <Link
             href="/dashboard/vendas"
-            className="rounded-lg border border-bmq-border px-4 py-2 text-sm font-medium text-bmq-dark hover:bg-bmq-mid/20"
+            className="rounded-lg border border-bmq-accent bg-bmq-accent/10 px-4 py-2 text-sm font-medium text-bmq-dark hover:bg-bmq-accent/20"
           >
             Cancelar
           </Link>

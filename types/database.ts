@@ -28,6 +28,7 @@ export interface Database {
           email: string;
           phone: string;
           address: string | null;
+          birth_date: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -37,6 +38,7 @@ export interface Database {
           email: string;
           phone: string;
           address?: string | null;
+          birth_date?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -46,6 +48,7 @@ export interface Database {
           email?: string;
           phone?: string;
           address?: string | null;
+          birth_date?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -191,6 +194,7 @@ export interface Database {
           client_id: number;
           data: string;
           total_value: number;
+          discount_value: number;
           status: SellStatus;
         };
         Insert: {
@@ -198,6 +202,7 @@ export interface Database {
           client_id: number;
           data?: string;
           total_value?: number;
+          discount_value?: number;
           status?: SellStatus;
         };
         Update: Partial<Database["public"]["Tables"]["sells"]["Insert"]>;

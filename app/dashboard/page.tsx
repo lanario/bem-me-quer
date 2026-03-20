@@ -201,6 +201,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mes
   const { data: recentSells } = await supabase
     .from("sells")
     .select("id, data, total_value, status, clients(name)")
+    .eq("status", "CONCLUIDA")
     .gte("data", firstDayOfMonth.toISOString())
     .lte("data", lastDayOfMonth.toISOString())
     .order("data", { ascending: false })
@@ -347,7 +348,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ mes
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="rounded-card border border-bmq-border bg-white shadow-card p-6 transition-all duration-300 ease-out hover:scale-[1.015] hover:shadow-cardHover" style={{ backgroundColor: "var(--bmq-cardBg, #FFFFFF)" }}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-bmq-dark">Vendas recentes</h3>
+            <h3 className="text-lg font-semibold text-bmq-dark">Vendas concluídas recentes</h3>
             <Link href="/dashboard/vendas" className="text-sm text-bmq-mid-dark hover:underline">Ver todas</Link>
           </div>
           <div className="overflow-x-auto">

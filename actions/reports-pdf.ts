@@ -525,6 +525,7 @@ export async function getVendaPdf(params: { sellId: number }): Promise<{ pdfBase
     id: number;
     data: string;
     total_value: number;
+    discount_value?: number;
     status: string;
     clients?: { name: string; email?: string; phone?: string; address?: string } | null;
     };
@@ -687,11 +688,17 @@ export async function getVendaPdf(params: { sellId: number }): Promise<{ pdfBase
     y += 8;
 
     const totalValue = Number(sell.total_value);
+    const discountValue = Number(sell.discount_value ?? 0);
+    const subtotalValue = items.reduce((acc, item) => acc + Number(item.subtotal), 0);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
     doc.setTextColor(0, 0, 0);
-    doc.text(`Subtotal: R$ ${formatCurrency(totalValue)}`, pageW - 14, y, { align: "right" });
+    doc.text(`Subtotal: R$ ${formatCurrency(subtotalValue)}`, pageW - 14, y, { align: "right" });
     y += 5;
+    if (discountValue > 0) {
+      doc.text(`Desconto: - R$ ${formatCurrency(discountValue)}`, pageW - 14, y, { align: "right" });
+      y += 5;
+    }
     doc.setFontSize(12);
     doc.setTextColor(primaryRgb.r, primaryRgb.g, primaryRgb.b);
     doc.text(`TOTAL: R$ ${formatCurrency(totalValue)}`, pageW - 14, y, { align: "right" });

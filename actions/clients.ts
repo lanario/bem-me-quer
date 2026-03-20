@@ -8,6 +8,26 @@ import type { Insertable, Updatable } from "@/types/database";
 export type ClientFormState = { error?: string };
 
 /**
+ * Lê e valida birth_date do FormData (opcional; formato ISO YYYY-MM-DD).
+ */
+function parseClientBirthDate(formData: FormData): { value: string | null; error?: string } {
+  const raw = (formData.get("birth_date") as string)?.trim() || "";
+  const value = raw === "" ? null : raw;
+  if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return { value: null, error: "Data de nascimento inválida." };
+  }
+  if (value) {
+    const parsed = new Date(`${value}T12:00:00`);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+    if (parsed > endOfToday) {
+      return { value: null, error: "Data de nascimento não pode ser no futuro." };
+    }
+  }
+  return { value };
+}
+
+/**
  * Cria um novo cliente.
  */
 export async function createClientAction(
@@ -18,6 +38,11 @@ export async function createClientAction(
   const email = (formData.get("email") as string)?.trim() || "";
   const phone = (formData.get("phone") as string)?.trim() || "";
   const address = (formData.get("address") as string)?.trim() || null;
+  const birth = parseClientBirthDate(formData);
+  if (birth.error) {
+    return { error: birth.error };
+  }
+  const birth_date = birth.value;
 
   if (!name) {
     return { error: "Nome é obrigatório." };
@@ -28,7 +53,7 @@ export async function createClientAction(
   }
 
   const supabase = await createClient();
-  const payload: Insertable<"clients"> = { name, email, phone, address };
+  const payload: Insertable<"clients"> = { name, email, phone, address, birth_date };
 
   // @ts-ignore Supabase client generic inference with custom Database type
   const { error } = await supabase.from("clients").insert(payload);
@@ -53,6 +78,11 @@ export async function updateClientAction(
   const email = (formData.get("email") as string)?.trim() || "";
   const phone = (formData.get("phone") as string)?.trim() || "";
   const address = (formData.get("address") as string)?.trim() || null;
+  const birth = parseClientBirthDate(formData);
+  if (birth.error) {
+    return { error: birth.error };
+  }
+  const birth_date = birth.value;
 
   if (!name) {
     return { error: "Nome é obrigatório." };
@@ -63,7 +93,7 @@ export async function updateClientAction(
   }
 
   const supabase = await createClient();
-  const payload: Updatable<"clients"> = { name, email, phone, address };
+  const payload: Updatable<"clients"> = { name, email, phone, address, birth_date };
 
   // @ts-ignore Supabase client generic inference with custom Database type
   const { error } = await supabase.from("clients").update(payload).eq("id", id);

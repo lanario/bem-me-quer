@@ -77,11 +77,13 @@ export async function createSellAction(
   if (stockError) return { error: stockError };
 
   const subtotals = items.map((i) => i.quantity * i.unitary_price);
-  const total_value = subtotals.reduce((a, b) => a + b, 0);
+  const subtotal = subtotals.reduce((a, b) => a + b, 0);
+  const discount_value = Math.min(Math.max(parseNum(formData.get("discount_value")), 0), subtotal);
+  const total_value = Math.max(0, subtotal - discount_value);
 
   const { data: sellData, error: errSell } = await supabase
     .from("sells")
-    .insert({ client_id, total_value, status: "PENDENTE" })
+    .insert({ client_id, total_value, discount_value, status: "PENDENTE" })
     .select("id")
     .single();
 
@@ -126,9 +128,11 @@ export async function updateSellAction(
   const stockError = await validateStock(supabase, items);
   if (stockError) return { error: stockError };
 
-  const total_value = items.reduce((acc, i) => acc + i.quantity * i.unitary_price, 0);
+  const subtotal = items.reduce((acc, i) => acc + i.quantity * i.unitary_price, 0);
+  const discount_value = Math.min(Math.max(parseNum(formData.get("discount_value")), 0), subtotal);
+  const total_value = Math.max(0, subtotal - discount_value);
 
-  await supabase.from("sells").update({ client_id, total_value }).eq("id", sellId);
+  await supabase.from("sells").update({ client_id, total_value, discount_value }).eq("id", sellId);
   await supabase.from("sell_items").delete().eq("sell_id", sellId);
 
   for (const item of items) {
@@ -331,11 +335,55 @@ export async function removeSellItemAction(
     .from("sell_items")
     .select("subtotal")
     .eq("sell_id", sellId);
-  const newTotal = (remaining ?? []).reduce((acc, r) => acc + Number((r as { subtotal: number }).subtotal), 0);
-  await supabase.from("sells").update({ total_value: newTotal }).eq("id", sellId);
+  const subtotal = (remaining ?? []).reduce((acc, r) => acc + Number((r as { subtotal: number }).subtotal), 0);
+  const { data: sellTotals } = await supabase
+    .from("sells")
+    .select("discount_value")
+    .eq("id", sellId)
+    .single();
+  const currentDiscount = Number((sellTotals as { discount_value?: number } | null)?.discount_value ?? 0);
+  const discount_value = Math.min(Math.max(currentDiscount, 0), subtotal);
+  const newTotal = Math.max(0, subtotal - discount_value);
+  await supabase.from("sells").update({ total_value: newTotal, discount_value }).eq("id", sellId);
 
   revalidatePath("/dashboard/vendas");
   revalidatePath(`/dashboard/vendas/${sellId}`);
   revalidatePath(`/dashboard/vendas/${sellId}/editar`);
   return {};
+}
+
+/**
+ * Exclui venda e seus itens.
+ * Regra: nao permite excluir venda CONCLUIDA para preservar consistencia de estoque.
+ */
+export async function deleteSellAction(
+  _prev: SellFormState,
+  formData: FormData
+): Promise<SellFormState> {
+  const sellId = Number(formData.get("sell_id"));
+  if (!sellId) return { error: "ID da venda não informado." };
+
+  const supabase = await createClient();
+  const { data: sell, error } = await supabase
+    .from("sells")
+    .select("id, status")
+    .eq("id", sellId)
+    .single();
+
+  if (error || !sell) return { error: "Venda não encontrada." };
+  const status = (sell as { status: SellStatus }).status;
+
+  if (status === "CONCLUIDA") {
+    return {
+      error:
+        "Não é possível excluir venda CONCLUÍDA. Cancele a venda antes para devolver os itens ao estoque.",
+    };
+  }
+
+  await supabase.from("sell_items").delete().eq("sell_id", sellId);
+  const { error: deleteError } = await supabase.from("sells").delete().eq("id", sellId);
+  if (deleteError) return { error: deleteError.message };
+
+  revalidatePath("/dashboard/vendas");
+  redirect("/dashboard/vendas");
 }
