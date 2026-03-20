@@ -187,6 +187,7 @@ export function ClientesPageClient({
         }
       >
         <ClientForm
+          key={openNew ? "novo-cliente" : (editId ?? "novo-cliente")}
           client={openNew ? undefined : clientToEdit ?? undefined}
           inSlideOver
         />

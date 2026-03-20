@@ -7,6 +7,7 @@ import {
   updateClientAction,
   type ClientFormState,
 } from "@/actions/clients";
+import { BirthDateInput } from "@/components/ui/BirthDateInput";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import type { Tables } from "@/types/database";
 
@@ -71,17 +72,11 @@ export function ClientForm({ client, inSlideOver }: ClientFormProps) {
       <div>
         <label
           htmlFor="birth_date"
-          className="block text-sm font-medium text-gray-700 mb-1"
+          className="block text-sm font-medium text-bmq-dark mb-1.5"
         >
           Data de nascimento
         </label>
-        <input
-          id="birth_date"
-          name="birth_date"
-          type="date"
-          defaultValue={client?.birth_date?.slice(0, 10) ?? ""}
-          className="w-full rounded-lg border border-bmq-border px-3 py-2 focus:ring-2 focus:ring-bmq-accent focus:border-bmq-accent"
-        />
+        <BirthDateInput initialIso={client?.birth_date ?? null} id="birth_date" />
       </div>
       <div>
         <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
