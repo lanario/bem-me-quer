@@ -63,6 +63,53 @@ export default async function VendaDetalhePage({
   const items = (itemsData ?? []) as SellItemRow[];
   const badge = statusBadge(sell.status);
 
+  const productIds = Array.from(new Set(items.map((item) => Number(item.product_id)).filter((idNumber) => Number.isFinite(idNumber))));
+  let estimatedCostTotal = 0;
+
+  if (productIds.length > 0) {
+    const { data: stockRows } = await supabase
+      .from("stock")
+      .select("product_id, quantity, cost_price")
+      .in("product_id", productIds);
+
+    const stocks = (stockRows ?? []) as { product_id: number; quantity: number; cost_price: number }[];
+    const productCostMap = new Map<number, number>();
+
+    for (const productId of productIds) {
+      const rows = stocks.filter((row) => row.product_id === productId);
+      if (rows.length === 0) {
+        productCostMap.set(productId, 0);
+        continue;
+      }
+
+      const weighted = rows
+        .filter((row) => Number(row.quantity) > 0)
+        .reduce(
+          (acc, row) => {
+            const qty = Number(row.quantity);
+            const cost = Number(row.cost_price);
+            return { totalQty: acc.totalQty + qty, totalCost: acc.totalCost + qty * cost };
+          },
+          { totalQty: 0, totalCost: 0 },
+        );
+
+      if (weighted.totalQty > 0) {
+        productCostMap.set(productId, weighted.totalCost / weighted.totalQty);
+      } else {
+        const avg = rows.reduce((acc, row) => acc + Number(row.cost_price), 0) / rows.length;
+        productCostMap.set(productId, Number.isFinite(avg) ? avg : 0);
+      }
+    }
+
+    estimatedCostTotal = items.reduce((acc, item) => {
+      const qty = Number(item.quantity);
+      const unitCost = productCostMap.get(Number(item.product_id)) ?? 0;
+      return acc + qty * unitCost;
+    }, 0);
+  }
+
+  const estimatedProfit = Number(sell.total_value) - estimatedCostTotal;
+
   return (
     <div className="p-8">
       <Link
@@ -104,6 +151,12 @@ export default async function VendaDetalhePage({
           <div>
             <dt className="text-bmq-mid-dark">Desconto</dt>
             <dd className="font-medium text-bmq-dark">R$ {Number(sell.discount_value ?? 0).toFixed(2)}</dd>
+          </div>
+          <div>
+            <dt className="text-bmq-mid-dark">Lucro estimado (observação)</dt>
+            <dd className={`font-medium ${estimatedProfit >= 0 ? "text-green-700" : "text-red-700"}`}>
+              R$ {estimatedProfit.toFixed(2)}
+            </dd>
           </div>
         </dl>
       </div>
