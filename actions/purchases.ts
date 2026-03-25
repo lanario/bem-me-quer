@@ -191,13 +191,27 @@ export async function receivePurchaseAction(
 
   const userId = (await supabase.auth.getUser()).data.user?.id ?? null;
 
-  const { data: defaultLocation } = await supabase
+  // Busca da localização padrão (Principal).
+  // Observacao: pode existir variação no cadastro (ex.: "Loja Principal"), então usamos fallback com ILIKE.
+  const { data: exactLocation } = await supabase
     .from("locations")
-    .select("id")
+    .select("id, name")
     .eq("name", "Principal")
     .maybeSingle();
-  const locationId = (defaultLocation as { id: number } | null)?.id;
-  if (locationId == null) {
+
+  let selectedLocation: { id: number; name: string } | null = exactLocation ? exactLocation : null;
+  if (!selectedLocation) {
+    const { data: candidates } = await supabase
+      .from("locations")
+      .select("id, name")
+      .ilike("name", "%principal%")
+      .order("id", { ascending: true })
+      .limit(1);
+    selectedLocation = (candidates && candidates[0] ? candidates[0] : null) as { id: number; name: string } | null;
+  }
+
+  const locationId = selectedLocation?.id ?? null;
+  if (locationId == null || !selectedLocation) {
     return { error: "Localização padrão (Principal) não encontrada. Cadastre em Localizações." };
   }
 
@@ -225,14 +239,14 @@ export async function receivePurchaseAction(
         .eq("id", stockId);
     } else {
       const { data: inserted } = await supabase
-        .from("stock")
+      .from("stock")
         .insert({
           product_id: item.product_id,
           location_id: locationId,
           quantity: item.quantity,
           cost_price: item.unit_cost,
           min_quantity: 0,
-          location: "Principal",
+          location: selectedLocation.name,
         })
         .select("id")
         .single();

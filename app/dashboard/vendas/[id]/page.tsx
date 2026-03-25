@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { FiArrowLeft } from "react-icons/fi";
 import { ExportPdfButton } from "@/components/reports/ExportPdfButton";
@@ -51,8 +51,25 @@ export default async function VendaDetalhePage({
     .eq("id", Number(id))
     .single();
 
-  if (error || !sellData) {
-    notFound();
+  if (error) {
+    return (
+      <div className="p-8">
+        <p className="text-red-600">
+          Erro ao carregar a venda #{id}: {error.message}
+        </p>
+        <button
+          type="button"
+          onClick={() => redirect("/dashboard/vendas")}
+          className="mt-4 rounded-lg border border-bmq-border px-4 py-2 text-sm font-medium text-bmq-dark"
+        >
+          Voltar para vendas
+        </button>
+      </div>
+    );
+  }
+
+  if (!sellData) {
+    redirect("/dashboard/vendas");
   }
 
   const sell = sellData as SellRow & { clients?: { name: string } | null };
@@ -64,24 +81,34 @@ export default async function VendaDetalhePage({
   const badge = statusBadge(sell.status);
 
   const productIds = Array.from(new Set(items.map((item) => Number(item.product_id)).filter((idNumber) => Number.isFinite(idNumber))));
-  let estimatedCostTotal = 0;
+  let estimatedProfit = 0;
 
   if (productIds.length > 0) {
-    const { data: stockRows } = await supabase
+    const discountValue = Number(sell.discount_value ?? 0);
+    const totalSubtotals = items.reduce((acc, item) => acc + Number(item.subtotal), 0);
+
+    // Preferimos o custo da "localização principal" (onde a compra é recebida).
+    const { data: principalLocations } = await supabase
+      .from("locations")
+      .select("id, name")
+      .ilike("name", "%principal%")
+      .order("id", { ascending: true });
+
+    const principalIds = (principalLocations ?? []).map((l) => Number(l.id)).filter((n) => Number.isFinite(n));
+
+    const { data: stockAll } = await supabase
       .from("stock")
-      .select("product_id, quantity, cost_price")
+      .select("product_id, location_id, quantity, cost_price")
       .in("product_id", productIds);
 
-    const stocks = (stockRows ?? []) as { product_id: number; quantity: number; cost_price: number }[];
-    const productCostMap = new Map<number, number>();
+    const stocks = (stockAll ?? []) as {
+      product_id: number;
+      location_id: number | null;
+      quantity: number;
+      cost_price: number;
+    }[];
 
-    for (const productId of productIds) {
-      const rows = stocks.filter((row) => row.product_id === productId);
-      if (rows.length === 0) {
-        productCostMap.set(productId, 0);
-        continue;
-      }
-
+    const calcWeightedUnitCost = (rows: typeof stocks): number => {
       const weighted = rows
         .filter((row) => Number(row.quantity) > 0)
         .reduce(
@@ -93,22 +120,38 @@ export default async function VendaDetalhePage({
           { totalQty: 0, totalCost: 0 },
         );
 
-      if (weighted.totalQty > 0) {
-        productCostMap.set(productId, weighted.totalCost / weighted.totalQty);
-      } else {
-        const avg = rows.reduce((acc, row) => acc + Number(row.cost_price), 0) / rows.length;
-        productCostMap.set(productId, Number.isFinite(avg) ? avg : 0);
-      }
+      if (weighted.totalQty > 0) return weighted.totalCost / weighted.totalQty;
+      if (rows.length === 0) return 0;
+
+      const avg = rows.reduce((acc, row) => acc + Number(row.cost_price), 0) / rows.length;
+      return Number.isFinite(avg) ? avg : 0;
+    };
+
+    // Calcula custo unitário por produto (prioridade: principal; fallback: todos).
+    const productUnitCost = new Map<number, number>();
+    for (const productId of productIds) {
+      const allRows = stocks.filter((r) => r.product_id === productId);
+      const principalRows = principalIds.length ? allRows.filter((r) => r.location_id != null && principalIds.includes(r.location_id)) : [];
+
+      const unitCostFromPrincipal = principalRows.length ? calcWeightedUnitCost(principalRows) : null;
+      const unitCost = unitCostFromPrincipal != null ? unitCostFromPrincipal : calcWeightedUnitCost(allRows);
+
+      productUnitCost.set(productId, unitCost);
     }
 
-    estimatedCostTotal = items.reduce((acc, item) => {
+    estimatedProfit = items.reduce((acc, item) => {
       const qty = Number(item.quantity);
-      const unitCost = productCostMap.get(Number(item.product_id)) ?? 0;
-      return acc + qty * unitCost;
+      const itemSubtotal = Number(item.subtotal);
+      const unitCost = productUnitCost.get(Number(item.product_id)) ?? 0;
+
+      // Desconto é rateado proporcionalmente ao subtotal de cada item.
+      const discountAlloc = totalSubtotals > 0 ? discountValue * (itemSubtotal / totalSubtotals) : 0;
+      const saleAfterDiscount = itemSubtotal - discountAlloc;
+
+      const costValue = qty * unitCost;
+      return acc + (saleAfterDiscount - costValue);
     }, 0);
   }
-
-  const estimatedProfit = Number(sell.total_value) - estimatedCostTotal;
 
   return (
     <div className="p-8">
