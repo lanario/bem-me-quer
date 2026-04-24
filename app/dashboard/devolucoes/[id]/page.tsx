@@ -75,7 +75,7 @@ export default async function DevolucaoDetalhePage({
   const sell = ret.sells as { id: number; data: string; clients?: { name: string } | null } | undefined;
 
   return (
-    <div className="p-8">
+    <div className="p-dashboard">
       <Link
         href="/dashboard/devolucoes"
         className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-6"

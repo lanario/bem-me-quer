@@ -75,13 +75,25 @@ const menuSections: MenuSection[] = [
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  /** No mobile, controla o drawer aberto; no desktop é ignorado. */
+  mobileOpen?: boolean;
+  /** Chamado ao clicar em um link (fecha o drawer no mobile). */
+  onNavigate?: () => void;
+}
+
+export function Sidebar({ mobileOpen = false, onNavigate }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-56 h-screen sticky top-0 bg-white border-r border-bmq-border flex flex-col shrink-0">
+    <aside
+      id="dashboard-sidebar"
+      className={`fixed inset-y-0 left-0 z-50 flex h-screen w-56 max-w-[min(16rem,88vw)] shrink-0 flex-col border-r border-bmq-border bg-white transition-transform duration-200 ease-out lg:static lg:z-auto lg:max-w-none lg:translate-x-0 ${
+        mobileOpen ? "translate-x-0" : "-translate-x-full"
+      }`}
+    >
       <div className="p-4 border-b border-bmq-border shrink-0">
-        <Link href="/dashboard" className="flex items-center gap-2">
+        <Link href="/dashboard" className="flex items-center gap-2" onClick={() => onNavigate?.()}>
           <Image
             src="/logo_bmq_transp.png"
             alt="Bem Me Quer"
@@ -107,6 +119,7 @@ export function Sidebar() {
                     key={href}
                     href={href}
                     prefetch={true}
+                    onClick={() => onNavigate?.()}
                     className={`group flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
                       isActive
                         ? "bg-bmq-dark text-white [&>svg]:text-white"

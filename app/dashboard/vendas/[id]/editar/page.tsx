@@ -30,7 +30,7 @@ export default async function EditarVendaPage({
   const sell = sellData as SellWithItems;
   if (sell.status !== "PENDENTE") {
     return (
-      <div className="p-8">
+      <div className="p-dashboard">
         <p className="text-amber-700">
           Apenas vendas com status Pendente podem ser editadas.
         </p>
@@ -61,7 +61,7 @@ export default async function EditarVendaPage({
   }));
 
   return (
-    <div className="p-8">
+    <div className="p-dashboard">
       <Link
         href="/dashboard/vendas"
         className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-6"

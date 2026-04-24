@@ -10,6 +10,7 @@ import {
   type SellFormState,
 } from "@/actions/sells";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { SearchableSelect } from "@/components/ui/SearchableSelect";
 
 /** Produto com preço padrão já resolvido (sell_price ?? category.price_default) */
 export type ProductWithDefaultPrice = {
@@ -65,9 +66,15 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
       : [{ product_id: products[0]?.id ?? 0, quantity_input: "1", unitary_price_input: formatMoneyInput(products[0]?.defaultPrice ?? 0) }];
 
   const [items, setItems] = useState<ItemRow[]>(initialItems);
+  const [clientId, setClientId] = useState<number | "">(
+    () => sell?.client_id ?? "",
+  );
   const [discountInput, setDiscountInput] = useState<string>(
     sell?.discount_value && sell.discount_value > 0 ? formatMoneyInput(sell.discount_value) : "",
   );
+
+  const clientOptions = clients.map((c) => ({ id: c.id, label: c.name }));
+  const productOptions = products.map((p) => ({ id: p.id, label: p.title }));
 
   const getDefaultPrice = useCallback(
     (productId: number) => products.find((p) => p.id === productId)?.defaultPrice ?? 0,
@@ -128,19 +135,15 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
         <h2 className="text-lg font-semibold text-bmq-dark mb-4">Cliente</h2>
         <label className="block">
           <span className="text-sm font-medium text-bmq-dark">Cliente *</span>
-          <select
+          <SearchableSelect
             name="client_id"
+            options={clientOptions}
+            value={clientId}
+            onValueChange={setClientId}
             required
-            defaultValue={sell?.client_id ?? ""}
-            className="mt-1 block w-full rounded-lg border border-bmq-border px-3 py-2 focus:border-bmq-accent focus:outline-none focus:ring-1 focus:ring-bmq-accent"
-          >
-            <option value="">Selecione o cliente</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+            placeholder="Buscar cliente…"
+            className="mt-1"
+          />
         </label>
       </div>
 
@@ -170,21 +173,18 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
             <tbody className="divide-y divide-bmq-border">
               {items.map((row, index) => (
                 <tr key={index}>
-                  <td className="px-4 py-2">
-                    <select
+                  <td className="px-4 py-2 min-w-[12rem]">
+                    <SearchableSelect
                       name="item_product_id"
+                      options={productOptions}
+                      value={row.product_id ? row.product_id : ""}
+                      onValueChange={(v) =>
+                        updateRow(index, "product_id", v === "" ? 0 : v)
+                      }
                       required
-                      value={row.product_id || ""}
-                      onChange={(e) => updateRow(index, "product_id", Number(e.target.value))}
-                      className="w-full rounded-lg border border-bmq-border px-3 py-2 text-sm focus:border-bmq-accent focus:outline-none focus:ring-1 focus:ring-bmq-accent"
-                    >
-                      <option value="">Selecione</option>
-                      {products.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.title}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="Buscar produto…"
+                      inputClassName="min-w-[200px]"
+                    />
                   </td>
                   <td className="px-4 py-2">
                     <input

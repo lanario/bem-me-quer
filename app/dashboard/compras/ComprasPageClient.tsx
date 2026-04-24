@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -98,7 +98,7 @@ export function ComprasPageClient({
 
   return (
     <>
-      <div className="p-8">
+      <div className="p-dashboard">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <h1 className="text-2xl font-bold text-bmq-dark">Compras</h1>
           <div className="flex flex-wrap items-center gap-3">

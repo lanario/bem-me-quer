@@ -23,7 +23,7 @@ export default async function EditarMarcaPage({
   }
 
   return (
-    <div className="p-8">
+    <div className="p-dashboard">
       <Link
         href="/dashboard/marcas"
         className="inline-flex items-center gap-2 text-sm text-bmq-mid-dark hover:text-bmq-dark mb-6"

@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { FiArrowLeft } from "react-icons/fi";
 import { PurchaseForm } from "../PurchaseForm";
@@ -12,7 +12,7 @@ export default async function NovaCompraPage() {
   const products = (productsData ?? []) as { id: number; title: string }[];
 
   return (
-    <div className="p-8">
+    <div className="p-dashboard">
       <Link
         href="/dashboard/compras"
         className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-6"

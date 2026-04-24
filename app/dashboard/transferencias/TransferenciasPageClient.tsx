@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -85,7 +85,7 @@ export function TransferenciasPageClient({
 
   return (
     <>
-      <div className="p-8">
+      <div className="p-dashboard">
         <div className="mb-6 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-bmq-dark">Transferências</h1>
           <Link

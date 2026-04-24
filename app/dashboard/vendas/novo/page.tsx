@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { FiArrowLeft } from "react-icons/fi";
 import { SellForm, type ProductWithDefaultPrice } from "../SellForm";
@@ -25,7 +25,7 @@ export default async function NovaVendaPage() {
   }));
 
   return (
-    <div className="p-8">
+    <div className="p-dashboard">
       <Link
         href="/dashboard/vendas"
         className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-6"

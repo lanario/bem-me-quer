@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/server";
 import { TransferenciasPageClient } from "./TransferenciasPageClient";
 import type { TransferStatus, Tables } from "@/types/database";
 
@@ -59,7 +59,7 @@ export default async function TransferenciasPage({
 
   if (error) {
     return (
-      <div className="p-8">
+      <div className="p-dashboard">
         <p className="text-red-600">Erro ao carregar transferências: {error.message}</p>
       </div>
     );

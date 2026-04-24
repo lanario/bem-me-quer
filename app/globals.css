@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer utilities {
+  /** Padding horizontal do painel: confortável no mobile, igual ao antigo p-8 no desktop. */
+  .p-dashboard {
+    @apply p-4 sm:p-6 lg:p-8;
+  }
+}
+
 /* Paleta Bem Me Quer - tema claro (fundo verde sutil no dashboard, cards brancos) */
 :root {
   --bmq-dark: #5e7f59;           /* Texto principal: títulos, rótulos, parágrafos */

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -47,7 +47,7 @@ export function MarcasPageClient({
 
   return (
     <>
-      <div className="p-8">
+      <div className="p-dashboard">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h1 className="text-2xl font-bold text-bmq-dark">Marcas</h1>
           <Link

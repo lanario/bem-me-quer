@@ -39,7 +39,7 @@ export function MonthPicker({ yearMonth, allowFutureMonths = false, preservePara
   }
 
   return (
-    <div className="inline-flex items-center rounded-full bg-bmq-dark px-4 py-2 text-white shadow-card">
+    <div className="flex w-full max-w-md items-center justify-center rounded-full bg-bmq-dark px-3 py-2 text-white shadow-card sm:inline-flex sm:w-auto sm:max-w-none sm:px-4">
       <button
         type="button"
         onClick={() => goTo(prevMonth.year, prevMonth.month)}
@@ -48,7 +48,7 @@ export function MonthPicker({ yearMonth, allowFutureMonths = false, preservePara
       >
         <FiChevronLeft size={20} />
       </button>
-      <span className="min-w-[140px] text-center font-semibold">
+      <span className="min-w-0 flex-1 px-1 text-center text-sm font-semibold sm:min-w-[140px] sm:flex-none sm:text-base">
         {monthLabel}
       </span>
       <button

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/server";
 import { ProdutosPageClient } from "./ProdutosPageClient";
 import type { ProductSize, Tables } from "@/types/database";
 
@@ -130,7 +130,7 @@ export default async function ProdutosPage({
 
   if (error) {
     return (
-      <div className="p-8">
+      <div className="p-dashboard">
         <p className="text-red-600">Erro ao carregar produtos: {error.message}</p>
       </div>
     );

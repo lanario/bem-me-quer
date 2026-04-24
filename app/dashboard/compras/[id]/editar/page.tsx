@@ -30,7 +30,7 @@ export default async function EditarCompraPage({
   const purchase = purchaseData as PurchaseWithItems;
   if (purchase.status !== "PENDENTE") {
     return (
-      <div className="p-8">
+      <div className="p-dashboard">
         <p className="text-amber-700">
           Apenas compras com status Pendente podem ser editadas.
         </p>
@@ -48,7 +48,7 @@ export default async function EditarCompraPage({
   const products = (productsData ?? []) as { id: number; title: string }[];
 
   return (
-    <div className="p-8">
+    <div className="p-dashboard">
       <Link
         href="/dashboard/compras"
         className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-6"

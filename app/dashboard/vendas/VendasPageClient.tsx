@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -97,10 +97,10 @@ export function VendasPageClient({
 
   return (
     <>
-      <div className="p-8">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="text-2xl font-bold text-bmq-dark">Vendas</h1>
-          <div className="flex flex-wrap items-center gap-3">
+      <div className="p-dashboard">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          <h1 className="text-xl font-bold text-bmq-dark sm:text-2xl">Vendas</h1>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
             <MonthPicker
               yearMonth={yearMonth}
               allowFutureMonths={true}
@@ -108,7 +108,7 @@ export function VendasPageClient({
             />
             <Link
               href={buildUrl({ novo: "1" })}
-              className="group inline-flex items-center gap-2 rounded-lg bg-bmq-accent px-4 py-2 text-sm font-medium text-white hover:bg-bmq-mid"
+              className="group inline-flex w-full items-center justify-center gap-2 rounded-lg bg-bmq-accent px-4 py-2 text-sm font-medium text-white hover:bg-bmq-mid sm:w-auto"
             >
               <AnimatedIcon Icon={FiShoppingCart} animation="cart-slide" size={18} />
               Nova venda

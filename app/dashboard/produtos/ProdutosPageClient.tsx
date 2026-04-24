@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
@@ -262,7 +262,7 @@ export function ProdutosPageClient({
 
   return (
     <>
-      <div className="p-8">
+      <div className="p-dashboard">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h1 className="text-2xl font-bold text-bmq-dark">Produtos</h1>
           <Link

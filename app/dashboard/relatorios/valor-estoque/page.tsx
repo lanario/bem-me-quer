@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/server";
 import { RelatoriosTabs } from "../RelatoriosTabs";
 import { ExportCsvButton } from "@/components/reports/ExportCsvButton";
 import { ExportPdfButton } from "@/components/reports/ExportPdfButton";
@@ -50,7 +50,7 @@ export default async function RelatorioValorEstoquePage() {
   const brandRows = Object.entries(byBrand).sort((a, b) => b[1].valor - a[1].valor);
 
   return (
-    <div className="p-8">
+    <div className="p-dashboard">
       <h1 className="text-2xl font-bold text-bmq-dark mb-2">Relatórios</h1>
       <p className="text-bmq-mid-dark mb-4">Visão financeira e operacional por período.</p>
       <RelatoriosTabs currentTab="valor-estoque" />

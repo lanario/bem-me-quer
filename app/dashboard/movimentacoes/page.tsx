@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/server";
 import { MovimentacoesFilters } from "./MovimentacoesFilters";
 import { PaginationBar } from "@/components/ui/PaginationBar";
 import type { MovementReason, MovementType, Tables } from "@/types/database";
@@ -64,7 +64,7 @@ export default async function MovimentacoesPage({
 
   if (error) {
     return (
-      <div className="p-8">
+      <div className="p-dashboard">
         <p className="text-red-600">Erro ao carregar movimentações: {error.message}</p>
       </div>
     );
@@ -74,7 +74,7 @@ export default async function MovimentacoesPage({
   const total = count ?? 0;
 
   return (
-    <div className="p-8">
+    <div className="p-dashboard">
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Movimentações de estoque</h1>
 
       <MovimentacoesFilters

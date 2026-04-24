@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/server";
 import { ComprasPageClient } from "./ComprasPageClient";
 import type { PurchaseStatus, Tables } from "@/types/database";
 
@@ -108,7 +108,7 @@ export default async function ComprasPage({
 
   if (error) {
     return (
-      <div className="p-8">
+      <div className="p-dashboard">
         <p className="text-red-600">Erro ao carregar compras: {error.message}</p>
       </div>
     );

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/server";
 import { RelatoriosTabs } from "../RelatoriosTabs";
 import { MovimentacoesFilters } from "../../movimentacoes/MovimentacoesFilters";
 import { ExportCsvButton } from "@/components/reports/ExportCsvButton";
@@ -61,7 +61,7 @@ export default async function RelatorioMovimentacoesPage({
   }
 
   return (
-    <div className="p-8">
+    <div className="p-dashboard">
       <h1 className="text-2xl font-bold text-bmq-dark mb-2">Relatórios</h1>
       <p className="text-bmq-mid-dark mb-4">Visão financeira e operacional por período.</p>
       <RelatoriosTabs currentTab="movimentacoes" />

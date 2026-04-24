@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database";
 import { LocalizacoesPageClient } from "./LocalizacoesPageClient";
 
@@ -49,7 +49,7 @@ export default async function LocalizacoesPage({
 
   if (resolvedError) {
     return (
-      <div className="p-8">
+      <div className="p-dashboard">
         <p className="text-red-600">Erro ao carregar localizações: {resolvedError.message}</p>
       </div>
     );

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/database";
 import { MarcasPageClient } from "./MarcasPageClient";
 
@@ -24,7 +24,7 @@ export default async function MarcasPage({
 
   if (error) {
     return (
-      <div className="p-8">
+      <div className="p-dashboard">
         <p className="text-red-600">Erro ao carregar marcas: {error.message}</p>
       </div>
     );

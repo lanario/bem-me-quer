@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/server";
 import { VendasPageClient } from "./VendasPageClient";
 import type { ProductWithDefaultPrice } from "./SellForm";
 import type { SellStatus, Tables } from "@/types/database";
@@ -118,7 +118,7 @@ export default async function VendasPage({
 
   if (error) {
     return (
-      <div className="p-8">
+      <div className="p-dashboard">
         <p className="text-red-600">Erro ao carregar vendas: {error.message}</p>
       </div>
     );

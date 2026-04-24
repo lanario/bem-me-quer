@@ -59,7 +59,7 @@ export default async function CompraDetalhePage({
   const badge = statusBadge(purchase.status);
 
   return (
-    <div className="p-8">
+    <div className="p-dashboard">
       <Link
         href="/dashboard/compras"
         className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 mb-6"

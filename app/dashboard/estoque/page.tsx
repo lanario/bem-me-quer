@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/server";
 import { EstoquePageClient, type StockRow } from "./EstoquePageClient";
 
 const PAGE_SIZE = 50;
@@ -38,7 +38,7 @@ export default async function EstoquePage({
 
   if (error) {
     return (
-      <div className="p-8">
+      <div className="p-dashboard">
         <p className="text-red-600">Erro ao carregar estoque: {error.message}</p>
       </div>
     );
@@ -75,7 +75,7 @@ export default async function EstoquePage({
   const stocksPage = stocks.slice(from, from + PAGE_SIZE);
 
   return (
-    <div className="p-8">
+    <div className="p-dashboard">
       <h1 className="text-2xl font-bold text-bmq-dark mb-6">Estoque</h1>
       <EstoquePageClient
         stocksPage={stocksPage}

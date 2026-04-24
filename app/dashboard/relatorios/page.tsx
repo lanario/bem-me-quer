@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/server";
 import { RelatoriosTabs } from "./RelatoriosTabs";
 import { RelatorioMensalContent } from "./RelatorioMensalContent";
 import type { MonthlyReportData } from "./RelatorioMensalContent";
@@ -140,7 +140,7 @@ export default async function RelatoriosPage(props: {
     };
 
     return (
-      <div className="p-8">
+      <div className="p-dashboard">
         <h1 className="text-2xl font-bold text-bmq-dark mb-2">Relatórios</h1>
         <p className="text-bmq-mid-dark mb-4">Visão financeira e operacional por período.</p>
         <RelatoriosTabs currentTab="mensal" searchParams={{ tab: "mensal", mes: yearMonth }} />
@@ -241,7 +241,7 @@ export default async function RelatoriosPage(props: {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-dashboard">
       <h1 className="text-2xl font-bold text-bmq-dark mb-2">Relatórios</h1>
       <p className="text-bmq-mid-dark mb-4">Visão financeira e operacional por período.</p>
       <RelatoriosTabs currentTab="anual" searchParams={{ tab: "anual", ano: String(ano) }} />

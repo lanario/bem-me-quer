@@ -42,10 +42,10 @@ export function DashboardCharts({
   const barDespesas = "#c62828";
 
   return (
-    <div className="space-y-8">
-      <div className="rounded-card border border-bmq-border bg-white shadow-card p-6 transition-all duration-300 ease-out hover:scale-[1.015] hover:shadow-cardHover" style={{ backgroundColor: "var(--bmq-cardBg, #FFFFFF)" }}>
-        <h3 className="text-base font-semibold text-bmq-dark mb-4">Vendas por período</h3>
-        <div className="h-56">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="rounded-card border border-bmq-border bg-white shadow-card p-4 transition-all duration-300 ease-out sm:p-6 sm:hover:scale-[1.015] sm:hover:shadow-cardHover" style={{ backgroundColor: "var(--bmq-cardBg, #FFFFFF)" }}>
+        <h3 className="mb-3 text-base font-semibold text-bmq-dark sm:mb-4">Vendas por período</h3>
+        <div className="h-48 sm:h-56">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               data={salesMonthly.length ? salesMonthly : salesWeekly.length ? salesWeekly : salesDaily}
@@ -87,13 +87,13 @@ export function DashboardCharts({
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-card border border-bmq-border bg-white shadow-card p-6 transition-all duration-300 ease-out hover:scale-[1.015] hover:shadow-cardHover" style={{ backgroundColor: "var(--bmq-cardBg, #FFFFFF)" }}>
-          <h3 className="text-lg font-semibold text-bmq-dark mb-4">Receitas do mês</h3>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="rounded-card border border-bmq-border bg-white shadow-card p-4 transition-all duration-300 ease-out sm:p-6 sm:hover:scale-[1.015] sm:hover:shadow-cardHover" style={{ backgroundColor: "var(--bmq-cardBg, #FFFFFF)" }}>
+          <h3 className="mb-3 text-base font-semibold text-bmq-dark sm:mb-4 sm:text-lg">Receitas do mês</h3>
           {receitasDoMes.every((d) => d.total === 0) ? (
             <p className="text-sm text-bmq-mid-dark py-8 text-center">Nenhuma receita no mês</p>
           ) : (
-            <div className="h-64">
+            <div className="h-52 sm:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={receitasDoMes} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />
@@ -121,12 +121,12 @@ export function DashboardCharts({
           )}
         </div>
 
-        <div className="rounded-card border border-bmq-border bg-white shadow-card p-6 transition-all duration-300 ease-out hover:scale-[1.015] hover:shadow-cardHover" style={{ backgroundColor: "var(--bmq-cardBg, #FFFFFF)" }}>
-          <h3 className="text-lg font-semibold text-bmq-dark mb-4">Despesas do mês</h3>
+        <div className="rounded-card border border-bmq-border bg-white shadow-card p-4 transition-all duration-300 ease-out sm:p-6 sm:hover:scale-[1.015] sm:hover:shadow-cardHover" style={{ backgroundColor: "var(--bmq-cardBg, #FFFFFF)" }}>
+          <h3 className="mb-3 text-base font-semibold text-bmq-dark sm:mb-4 sm:text-lg">Despesas do mês</h3>
           {despesasDoMes.every((d) => d.total === 0) ? (
             <p className="text-sm text-bmq-mid-dark py-8 text-center">Nenhuma despesa no mês</p>
           ) : (
-            <div className="h-64">
+            <div className="h-52 sm:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={despesasDoMes} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={gridStroke} />

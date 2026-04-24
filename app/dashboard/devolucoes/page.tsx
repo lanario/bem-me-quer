@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+﻿import { createClient } from "@/lib/supabase/server";
 import { DevolucoesPageClient } from "./DevolucoesPageClient";
 import type { ReturnStatus, Tables } from "@/types/database";
 
@@ -47,7 +47,7 @@ export default async function DevolucoesPage({
 
   if (error) {
     return (
-      <div className="p-8">
+      <div className="p-dashboard">
         <p className="text-red-600">Erro ao carregar devoluções: {error.message}</p>
       </div>
     );
