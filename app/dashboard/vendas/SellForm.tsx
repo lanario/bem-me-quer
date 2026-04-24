@@ -63,7 +63,13 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
           quantity_input: String(i.quantity),
           unitary_price_input: formatMoneyInput(i.unitary_price ?? 0),
         })) as ItemRow[])
-      : [{ product_id: products[0]?.id ?? 0, quantity_input: "1", unitary_price_input: formatMoneyInput(products[0]?.defaultPrice ?? 0) }];
+      : [
+          {
+            product_id: 0,
+            quantity_input: "1",
+            unitary_price_input: formatMoneyInput(0),
+          },
+        ];
 
   const [items, setItems] = useState<ItemRow[]>(initialItems);
   const [clientId, setClientId] = useState<number | "">(
@@ -82,12 +88,15 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
   );
 
   const addRow = useCallback(() => {
-    const firstId = products[0]?.id ?? 0;
     setItems((prev) => [
       ...prev,
-      { product_id: firstId, quantity_input: "1", unitary_price_input: formatMoneyInput(getDefaultPrice(firstId)) },
+      {
+        product_id: 0,
+        quantity_input: "1",
+        unitary_price_input: formatMoneyInput(0),
+      },
     ]);
-  }, [products, getDefaultPrice]);
+  }, []);
 
   const removeRow = useCallback((index: number) => {
     setItems((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
@@ -100,7 +109,9 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
           i === index ? { ...row, [field]: value as never } : row
         );
         if (field === "product_id") {
-          next[index]!.unitary_price_input = formatMoneyInput(getDefaultPrice(value as number));
+          const pid = value as number;
+          next[index]!.unitary_price_input =
+            pid > 0 ? formatMoneyInput(getDefaultPrice(pid)) : formatMoneyInput(0);
         }
         return next;
       });

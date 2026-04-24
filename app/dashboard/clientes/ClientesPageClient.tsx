@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition, useOptimistic } from "react";
-import { FiPlus, FiEdit2, FiUser, FiMail, FiPhone, FiMapPin } from "react-icons/fi";
+import { FiPlus, FiEdit2, FiUser, FiMail, FiPhone, FiMapPin, FiShoppingBag } from "react-icons/fi";
+import { FaWhatsapp } from "react-icons/fa";
 import { deleteClientAction } from "@/actions/clients";
+import { buildWhatsAppChatUrl } from "@/lib/buildWhatsAppChatUrl";
 import { ClientesListSearch } from "./ClientesListSearch";
 import { DeleteButton } from "@/components/ui/DeleteButton";
 import { PaginationBar } from "@/components/ui/PaginationBar";
@@ -25,6 +27,8 @@ function ClientCard({
   buildUrl: (extra: { novo?: string; editar?: string }) => string;
   onDelete: (id: number) => void;
 }) {
+  const whatsappUrl = buildWhatsAppChatUrl(client.phone);
+
   return (
     <div
       className="rounded-card border border-bmq-border bg-white shadow-card p-5 transition-all duration-200 ease-out hover:scale-[1.015] hover:shadow-cardHover flex flex-col"
@@ -53,6 +57,25 @@ function ClientCard({
         </div>
       </div>
       <div className="mt-auto flex flex-wrap items-center gap-2 pt-3 border-t border-bmq-border">
+        {whatsappUrl != null && (
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-lg bg-[#25D366] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#20bd5a]"
+            aria-label={`Enviar mensagem no WhatsApp para ${client.name}`}
+          >
+            <FaWhatsapp size={14} aria-hidden />
+            WhatsApp
+          </a>
+        )}
+        <Link
+          href={`/dashboard/clientes/${client.id}/compras`}
+          className="inline-flex items-center gap-1 rounded-lg border border-bmq-accent/50 bg-bmq-accent/10 px-3 py-1.5 text-xs font-medium text-bmq-dark hover:bg-bmq-accent/20"
+        >
+          <FiShoppingBag size={14} aria-hidden />
+          Ver compras
+        </Link>
         <Link
           href={buildUrl({ editar: String(client.id) })}
           className="inline-flex items-center gap-1 rounded-lg bg-bmq-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-bmq-mid"

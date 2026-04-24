@@ -26,6 +26,9 @@ const ROUTE_PREFIXES: { prefix: string; title: string }[] = [
 ];
 
 function getMobileTitle(pathname: string): string {
+  if (/\/clientes\/\d+\/compras\/?$/.test(pathname)) {
+    return "Compras do cliente";
+  }
   for (const { prefix, title } of ROUTE_PREFIXES) {
     if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
       return title;
