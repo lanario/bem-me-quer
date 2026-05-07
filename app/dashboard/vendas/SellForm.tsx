@@ -54,6 +54,20 @@ function formatMoneyInput(value: number): string {
   return value.toFixed(2).replace(".", ",");
 }
 
+function roundMoney(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+/** Percentual 0–100 a partir do texto do campo (aceita vírgula decimal). */
+function parsePercentInput(value: string): number {
+  const normalized = value.trim().replace(",", ".");
+  const n = Number(normalized);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(Math.max(n, 0), 100);
+}
+
+type DiscountKind = "fixed" | "percent";
+
 export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps) {
   const isEdit = Boolean(sell?.id);
   const initialItems: ItemRow[] =
@@ -75,9 +89,13 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
   const [clientId, setClientId] = useState<number | "">(
     () => sell?.client_id ?? "",
   );
-  const [discountInput, setDiscountInput] = useState<string>(
-    sell?.discount_value && sell.discount_value > 0 ? formatMoneyInput(sell.discount_value) : "",
+  const [discountKind, setDiscountKind] = useState<DiscountKind>("fixed");
+  const [discountFixedInput, setDiscountFixedInput] = useState<string>(
+    sell?.discount_value && sell.discount_value > 0
+      ? formatMoneyInput(sell.discount_value)
+      : "",
   );
+  const [discountPercentInput, setDiscountPercentInput] = useState<string>("");
 
   const clientOptions = clients.map((c) => ({ id: c.id, label: c.name }));
   const productOptions = products.map((p) => ({ id: p.id, label: p.title }));
@@ -123,9 +141,21 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
     (acc, row) => acc + parseQuantityInput(row.quantity_input) * parseMoneyInput(row.unitary_price_input),
     0,
   );
-  const discountValueRaw = parseMoneyInput(discountInput);
-  const discountValue = Math.min(Math.max(discountValueRaw, 0), totalBruto);
+  const discountPercentNumeric = parsePercentInput(discountPercentInput);
+  const discountFromPercent = roundMoney((totalBruto * discountPercentNumeric) / 100);
+  const discountValue =
+    discountKind === "percent"
+      ? Math.min(Math.max(discountFromPercent, 0), totalBruto)
+      : Math.min(Math.max(roundMoney(parseMoneyInput(discountFixedInput)), 0), totalBruto);
   const total = Math.max(0, totalBruto - discountValue);
+
+  const discountSummaryExtra =
+    discountKind === "percent" && discountPercentNumeric > 0 && discountValue > 0
+      ? ` (${discountPercentNumeric.toLocaleString("pt-BR", {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 2,
+        })}%)`
+      : "";
 
   const formAction = isEdit
     ? (_prev: SellFormState, formData: FormData) =>
@@ -235,22 +265,75 @@ export function SellForm({ clients, products, sell, inSlideOver }: SellFormProps
             </tbody>
           </table>
         </div>
-        <div className="mt-4 flex justify-end">
-          <label className="flex items-center gap-2 text-sm text-bmq-dark">
-            Desconto (R$):
-            <input
-              type="text"
-              inputMode="decimal"
-              name="discount_value"
-              value={discountInput}
-              placeholder="0,00"
-              onChange={(e) => setDiscountInput(e.target.value)}
-              className="w-28 rounded-lg border border-bmq-border px-3 py-2 text-sm text-right focus:border-bmq-accent focus:outline-none focus:ring-1 focus:ring-bmq-accent"
-            />
-          </label>
+        <div className="mt-4 flex flex-col items-end gap-3 sm:flex-row sm:items-center sm:justify-end">
+          <span className="text-sm font-medium text-bmq-dark">Desconto</span>
+          <input type="hidden" name="discount_kind" value={discountKind} />
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <div
+              className="inline-flex rounded-lg border border-bmq-border p-0.5"
+              role="group"
+              aria-label="Tipo de desconto"
+            >
+              <button
+                type="button"
+                onClick={() => setDiscountKind("fixed")}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  discountKind === "fixed"
+                    ? "bg-bmq-accent text-white"
+                    : "text-bmq-mid-dark hover:bg-bmq-mid/15"
+                }`}
+              >
+                R$
+              </button>
+              <button
+                type="button"
+                onClick={() => setDiscountKind("percent")}
+                className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  discountKind === "percent"
+                    ? "bg-bmq-accent text-white"
+                    : "text-bmq-mid-dark hover:bg-bmq-mid/15"
+                }`}
+              >
+                %
+              </button>
+            </div>
+            {discountKind === "fixed" ? (
+              <label className="flex items-center gap-2 text-sm text-bmq-dark">
+                <span className="sr-only">Valor em reais</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  name="discount_fixed"
+                  value={discountFixedInput}
+                  placeholder="0,00"
+                  onChange={(e) => setDiscountFixedInput(e.target.value)}
+                  autoComplete="off"
+                  className="w-28 rounded-lg border border-bmq-border px-3 py-2 text-sm text-right focus:border-bmq-accent focus:outline-none focus:ring-1 focus:ring-bmq-accent"
+                />
+              </label>
+            ) : (
+              <label className="flex items-center gap-2 text-sm text-bmq-dark">
+                <span className="sr-only">Percentual</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  name="discount_percent"
+                  value={discountPercentInput}
+                  placeholder="0"
+                  onChange={(e) => setDiscountPercentInput(e.target.value)}
+                  autoComplete="off"
+                  className="w-24 rounded-lg border border-bmq-border px-3 py-2 text-sm text-right focus:border-bmq-accent focus:outline-none focus:ring-1 focus:ring-bmq-accent"
+                />
+                <span className="text-bmq-mid-dark">%</span>
+              </label>
+            )}
+          </div>
         </div>
         <p className="mt-2 text-right text-sm text-bmq-mid-dark">
-          Subtotal: R$ {totalBruto.toFixed(2)} {discountValue > 0 ? `• Desconto: - R$ ${discountValue.toFixed(2)}` : ""}
+          Subtotal: R$ {totalBruto.toFixed(2)}
+          {discountValue > 0
+            ? ` • Desconto: - R$ ${discountValue.toFixed(2)}${discountSummaryExtra}`
+            : ""}
         </p>
         <p className="mt-4 text-right text-lg font-semibold text-bmq-dark">
           Total: R$ {total.toFixed(2)}

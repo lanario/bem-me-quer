@@ -12,6 +12,29 @@ function parseNum(value: FormDataEntryValue | null): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+function roundMoney(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+/**
+ * Desconto enviado pelo formulário: em R$ (`discount_fixed`) ou em % (`discount_percent`).
+ * Persistimos sempre o valor em R$ em `discount_value`.
+ */
+function computeDiscountValue(formData: FormData, subtotal: number): number {
+  if (subtotal <= 0) return 0;
+  const kind = String(formData.get("discount_kind") ?? "fixed").trim();
+  if (kind === "percent") {
+    const pct = Math.min(Math.max(parseNum(formData.get("discount_percent")), 0), 100);
+    const raw = roundMoney((subtotal * pct) / 100);
+    return Math.min(Math.max(raw, 0), subtotal);
+  }
+  const fixedEntry = formData.get("discount_fixed");
+  if (fixedEntry != null && String(fixedEntry).trim() !== "") {
+    return Math.min(Math.max(roundMoney(parseNum(fixedEntry)), 0), subtotal);
+  }
+  return Math.min(Math.max(roundMoney(parseNum(formData.get("discount_value"))), 0), subtotal);
+}
+
 /**
  * Parseia itens do formulário: item_product_id[], item_quantity[], item_unitary_price[]
  */
@@ -78,7 +101,7 @@ export async function createSellAction(
 
   const subtotals = items.map((i) => i.quantity * i.unitary_price);
   const subtotal = subtotals.reduce((a, b) => a + b, 0);
-  const discount_value = Math.min(Math.max(parseNum(formData.get("discount_value")), 0), subtotal);
+  const discount_value = computeDiscountValue(formData, subtotal);
   const total_value = Math.max(0, subtotal - discount_value);
 
   const { data: sellData, error: errSell } = await supabase
@@ -129,7 +152,7 @@ export async function updateSellAction(
   if (stockError) return { error: stockError };
 
   const subtotal = items.reduce((acc, i) => acc + i.quantity * i.unitary_price, 0);
-  const discount_value = Math.min(Math.max(parseNum(formData.get("discount_value")), 0), subtotal);
+  const discount_value = computeDiscountValue(formData, subtotal);
   const total_value = Math.max(0, subtotal - discount_value);
 
   await supabase.from("sells").update({ client_id, total_value, discount_value }).eq("id", sellId);
